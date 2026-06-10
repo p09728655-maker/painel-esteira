@@ -517,7 +517,7 @@ td.td-actions { width: 100px; text-align: right; }
   td.td-num { text-align: right !important; }
   td.td-produto { white-space: normal !important; text-align: left !important; }
   #prog-card-resumo { display: block !important; page-break-inside: avoid; }
-  .resumo-grid { display: grid !important; grid-template-columns: repeat(7, 1fr) !important; gap: 6px !important; }
+  .resumo-grid { display: grid !important; grid-template-columns: repeat(8, 1fr) !important; gap: 6px !important; }
   .resumo-item { border: 1px solid #ccc !important; border-radius: 3px !important; padding: 6px 8px !important; background: #f8f8f8 !important; }
   .resumo-val { font-size: 16px !important; font-weight: 700 !important; color: #000 !important; }
   .resumo-lbl { font-size: 8px !important; color: #666 !important; margin-bottom: 3px !important; }
@@ -868,6 +868,7 @@ td.td-actions { width: 100px; text-align: right; }
             <th style="text-align:right">Qtd (cx)</th>
             <th style="text-align:right">CX/H</th>
             <th style="text-align:right">Tempo</th>
+            <th style="text-align:right">Troca</th>
             <th style="text-align:right">KG</th>
             <th style="text-align:right">Pontos</th>
             <th>Início</th>
@@ -876,7 +877,7 @@ td.td-actions { width: 100px; text-align: right; }
           </tr>
         </thead>
         <tbody id="prog-tbody">
-          <tr class="empty-row"><td colspan="11">Nenhum produto adicionado.</td></tr>
+          <tr class="empty-row"><td colspan="12">Nenhum produto adicionado.</td></tr>
         </tbody>
       </table>
     </div>
@@ -888,6 +889,7 @@ td.td-actions { width: 100px; text-align: right; }
         <div class="resumo-item"><div class="resumo-lbl">Total de caixas</div><div class="resumo-val" id="prog-res-total-cx">—</div></div>
         <div class="resumo-item"><div class="resumo-lbl">Total kg</div><div class="resumo-val" id="prog-res-total-kg" style="color:var(--ok)">—</div><div class="resumo-sub" id="prog-res-total-kg-sub"></div></div>
         <div class="resumo-item"><div class="resumo-lbl">Total pontos</div><div class="resumo-val" id="prog-res-total-pontos" style="color:var(--warn)">—</div></div>
+        <div class="resumo-item"><div class="resumo-lbl">Tempo troca</div><div class="resumo-val" id="prog-res-total-troca" style="color:var(--txt2)">—</div></div>
         <div class="resumo-item"><div class="resumo-lbl">Tempo total</div><div class="resumo-val" id="prog-res-tempo">—</div><div class="resumo-sub" id="prog-res-tempo-min"></div></div>
         <div class="resumo-item"><div class="resumo-lbl">Início</div><div class="resumo-val" id="prog-res-inicio" style="color:var(--txt2)">07:00</div></div>
         <div class="resumo-item"><div class="resumo-lbl">Previsão de término</div><div class="resumo-val" id="prog-res-fim" style="color:var(--accent)">—</div><div class="resumo-sub" id="prog-res-obs"></div></div>
@@ -1760,7 +1762,8 @@ function progAddMinComAlmoco(startMin,durMin){
 function progRecalcularHorarios(){
   let curMin=parseHHMM(TURNO_INICIO);
   const almIni2=parseHHMM(ALMOCO_INI),almFim2=parseHHMM(ALMOCO_FIM);
-  progItens.forEach(item=>{
+  progItens.forEach((item,idx)=>{
+    if(idx>0&&item.troca_min>0)curMin=progAddMinComAlmoco(curMin,item.troca_min);
     if(curMin>=almIni2&&curMin<almFim2)curMin=almFim2;
     item.hora_inicio=minToHHMM(curMin);
     const fimMin=progAddMinComAlmoco(curMin,item.tempo_min);
@@ -1825,7 +1828,7 @@ function progAdicionarItem(){
   const p=progProdutoAtual;
   const cxMin=progCalcCxMin(p.vel,p.medida,p.entre_pecas);
   const cxH=cxMin*60,tempMin=cxMin>0?(qtd/cxMin):0;
-  progItens.push({codigo:p.codigo,descricao:p.descricao||p.codigo,qtd_cx:qtd,vel:p.vel||0,medida:p.medida||0,entre_pecas:p.entre_pecas||0,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:Math.round(cxH),tempo_min:parseFloat(tempMin.toFixed(1)),hora_inicio:'',hora_fim:'',pb:parseFloat(p.pb)||0,pontos:parseFloat(p.pontos)||0});
+  progItens.push({codigo:p.codigo,descricao:p.descricao||p.codigo,qtd_cx:qtd,vel:p.vel||0,medida:p.medida||0,entre_pecas:p.entre_pecas||0,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:Math.round(cxH),tempo_min:parseFloat(tempMin.toFixed(1)),hora_inicio:'',hora_fim:'',pb:parseFloat(p.pb)||0,pontos:parseFloat(p.pontos)||0,troca_min:0});
   progRecalcularHorarios();progRenderTabela();progRenderResumo();
   document.getElementById('prog-input-busca').value='';
   document.getElementById('prog-input-qtd').value='';
@@ -1846,11 +1849,14 @@ function progRenderTabela(){
   document.getElementById('prog-ph-fadiga').textContent=fadPct>0?`Fadiga: ${fadPct}%`:'';
   const tbody=document.getElementById('prog-tbody');
   tbody.innerHTML='';
-  if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="11">Nenhum produto adicionado.</td></tr>';return;}
+  if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="12">Nenhum produto adicionado.</td></tr>';return;}
   progItens.forEach((item,idx)=>{
     const tr=document.createElement('tr');
     const kgItem=item.pb>0?(item.qtd_cx*item.pb).toFixed(0)+' kg':'—';
     const ptItem=item.pontos>0?fmtNum(item.qtd_cx*item.pontos,0)+' pt':'—';
+    const trocaInput=idx===0
+      ?`<input type="number" value="0" disabled style="width:44px;background:transparent;border:1px solid #333;border-radius:4px;color:var(--txt2);text-align:right;padding:2px 4px;font-size:12px" title="Primeiro produto não tem troca">`
+      :`<input type="number" min="0" step="1" value="${item.troca_min||0}" style="width:44px;background:transparent;border:1px solid #444;border-radius:4px;color:var(--txt);text-align:right;padding:2px 4px;font-size:12px" onchange="progItens[${idx}].troca_min=Math.max(0,parseInt(this.value)||0);progRecalcularHorarios();progRenderTabela();progRenderResumo()">`;
     tr.innerHTML=`
       <td class="td-ordem">${idx+1}</td>
       <td class="td-produto">${item.descricao}</td>
@@ -1858,6 +1864,7 @@ function progRenderTabela(){
       <td class="td-num">${item.qtd_cx.toLocaleString('pt-BR')}</td>
       <td class="td-num">${item.cx_h}</td>
       <td class="td-num">${fmtTempoHM(item.tempo_min)}</td>
+      <td class="td-num">${trocaInput}</td>
       <td class="td-num" style="color:var(--ok)">${kgItem}</td>
       <td class="td-num" style="color:var(--warn)">${ptItem}</td>
       <td class="td-hora">${item.hora_inicio}</td>
@@ -1885,12 +1892,14 @@ function progRenderResumo(){
   const totalKg=progItens.reduce((s,i)=>s+(i.pb>0?i.qtd_cx*i.pb:0),0);
   const itensComKg=progItens.filter(i=>i.pb>0).length;
   const totalPontos=progItens.reduce((s,i)=>s+(i.pontos>0?i.qtd_cx*i.pontos:0),0);
+  const totalTroca=progItens.slice(1).reduce((s,i)=>s+(i.troca_min||0),0);
   document.getElementById('prog-res-qtd-itens').textContent=progItens.length;
   document.getElementById('prog-res-total-cx').textContent=totalCx.toLocaleString('pt-BR');
   const kgEl=document.getElementById('prog-res-total-kg'),kgSub=document.getElementById('prog-res-total-kg-sub');
   if(totalKg>0){kgEl.textContent=totalKg.toFixed(0)+' kg';kgSub.textContent=itensComKg<progItens.length?`${progItens.length-itensComKg} sem peso cadastrado`:'';}
   else{kgEl.textContent='—';kgSub.textContent='sem peso cadastrado';}
   document.getElementById('prog-res-total-pontos').textContent=totalPontos>0?fmtNum(totalPontos,0)+' pt':'—';
+  document.getElementById('prog-res-total-troca').textContent=totalTroca>0?fmtTempoHM(totalTroca):'—';
   document.getElementById('prog-res-tempo').textContent=fmtTempoHM(totalMin);
   document.getElementById('prog-res-tempo-min').textContent=`${Math.round(totalMin)} minutos`;
   document.getElementById('prog-res-inicio').textContent=TURNO_INICIO;
@@ -1903,7 +1912,21 @@ function progRenderResumo(){
 function progRenderTimeline(){
   const tl=document.getElementById('prog-timeline');tl.innerHTML='';
   progItens.forEach((item,idx)=>{
-    if(idx>0){const prevFim=parseHHMM(progItens[idx-1].hora_fim),curIni=parseHHMM(item.hora_inicio);if(prevFim<=parseHHMM(ALMOCO_INI)&&curIni>=parseHHMM(ALMOCO_FIM)){const almEl=document.createElement('div');almEl.className='timeline-item timeline-almoco';almEl.innerHTML=`<div class="tl-hora">${ALMOCO_INI}–${ALMOCO_FIM}</div><div class="tl-nome">Almoço</div><div class="tl-qtd">72 min</div>`;tl.appendChild(almEl);}}
+    if(idx>0){
+      const prevFim=parseHHMM(progItens[idx-1].hora_fim),curIni=parseHHMM(item.hora_inicio);
+      if(prevFim<=parseHHMM(ALMOCO_INI)&&curIni>=parseHHMM(ALMOCO_FIM)){
+        const almEl=document.createElement('div');almEl.className='timeline-item timeline-almoco';
+        almEl.innerHTML=`<div class="tl-hora">${ALMOCO_INI}–${ALMOCO_FIM}</div><div class="tl-nome">Almoço</div><div class="tl-qtd">72 min</div>`;
+        tl.appendChild(almEl);
+      }
+      if(item.troca_min>0){
+        const trocaIni=progItens[idx-1].hora_fim;
+        const trocaFim=item.hora_inicio;
+        const tEl=document.createElement('div');tEl.className='timeline-item timeline-almoco';
+        tEl.innerHTML=`<div class="tl-hora">${trocaIni}–${trocaFim}</div><div class="tl-nome">Troca</div><div class="tl-qtd">${item.troca_min} min</div>`;
+        tl.appendChild(tEl);
+      }
+    }
     const el=document.createElement('div');el.className='timeline-item';
     el.innerHTML=`<div class="tl-hora">${item.hora_inicio}–${item.hora_fim}</div><div class="tl-nome">${item.descricao}</div><div class="tl-qtd">${item.qtd_cx} cx · ${fmtTempoHM(item.tempo_min)}</div>`;
     tl.appendChild(el);
@@ -1935,7 +1958,7 @@ async function progCarregarProgramacao(){
       const prod=progCacheProdutos.find(p=>p.codigo===item.codigo);
       const pb=parseFloat(item.pb)||(prod?parseFloat(prod.pb)||0:0);
       const pontos=parseFloat(item.pontos)||(prod?parseFloat(prod.pontos)||0:0);
-      return{codigo:item.codigo,descricao:item.descricao,qtd_cx:item.qtd_cx,vel,medida:med,entre_pecas:ep,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:cxH,tempo_min:tmpMin,hora_inicio:'',hora_fim:'',pb,pontos};
+      return{codigo:item.codigo,descricao:item.descricao,qtd_cx:item.qtd_cx,vel,medida:med,entre_pecas:ep,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:cxH,tempo_min:tmpMin,hora_inicio:'',hora_fim:'',pb,pontos,troca_min:0};
     });
     progRecalcularHorarios();progRenderTabela();progRenderResumo();
     status.textContent=`${progItens.length} produto(s) carregado(s).`;
