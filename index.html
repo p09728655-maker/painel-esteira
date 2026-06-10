@@ -859,8 +859,7 @@ td.td-actions { width: 80px; text-align: right; }
           <button class="btn btn-ok" onclick="progSalvarProgramacao()" id="prog-btn-salvar">Salvar no Sheets</button>
         </div>
       </div>
-      <div style="overflow-x:auto">
-      <table class="tabela-prog">
+      <table class="tabela-prog" style="overflow-x:auto;display:block;min-width:max-content">
         <thead>
           <tr>
             <th style="width:36px">#</th>
@@ -881,7 +880,6 @@ td.td-actions { width: 80px; text-align: right; }
           <tr class="empty-row"><td colspan="12">Nenhum produto adicionado.</td></tr>
         </tbody>
       </table>
-      </div>
     </div>
 
     <div class="card" id="prog-card-resumo" style="display:none">
