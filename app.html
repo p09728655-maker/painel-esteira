@@ -853,12 +853,25 @@ td.td-actions { width: 80px; text-align: right; }
           <div class="card-title" style="margin-bottom:0">Programação</div>
           <span id="prog-badge-fadiga" style="display:none;font-size:11px;background:rgba(255,152,0,0.15);color:#EAB308;border:1px solid rgba(255,152,0,0.3);border-radius:4px;padding:2px 8px;font-family:'JetBrains Mono',monospace"></span>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2)">
-            <span>Troca padrão:</span>
+            <span>Troca:</span>
             <input type="number" id="prog-troca-global" min="0" step="1" value="0"
-              style="width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--txt);text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
+              style="width:48px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--txt);text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
               title="Minutos de troca padrão entre produtos">
             <span>min</span>
-            <button class="btn btn-outline btn-sm" onclick="progAplicarTrocaGlobal()" style="padding:3px 10px;font-size:11px">Aplicar todos</button>
+            <button class="btn btn-outline btn-sm" onclick="progAplicarTrocaGlobal()" style="padding:3px 10px;font-size:11px">Aplicar</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);margin-left:8px;padding-left:8px;border-left:1px solid var(--border)">
+            <span>Vel:</span>
+            <input type="number" id="prog-vel-sim" min="0" step="1" placeholder="—"
+              style="width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--txt);text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
+              title="Velocidade da esteira (m/min) — deixe vazio para usar o padrão de cada produto">
+            <span>m/min</span>
+            <span style="margin-left:4px">Ep:</span>
+            <input type="number" id="prog-ep-sim" min="0" step="0.1" placeholder="—"
+              style="width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--txt);text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
+              title="Entre peças (mm) — deixe vazio para usar o padrão de cada produto">
+            <span>mm</span>
+            <button class="btn btn-outline btn-sm" onclick="progSimularTodos()" style="padding:3px 10px;font-size:11px;border-color:var(--accent);color:var(--accent)">Simular</button>
           </div>
         </div>
         <div style="display:flex;gap:8px">
@@ -1853,6 +1866,26 @@ function progAplicarTrocaGlobal(){
   progItens.forEach((item,idx)=>{if(idx>0)item.troca_min=val;});
   progRecalcularHorarios();progRenderTabela();progRenderResumo();
   progToast(val>0?`Troca de ${val} min aplicada a todos os produtos.`:'Troca zerada em todos os produtos.','ok');
+}
+function progSimularTodos(){
+  const velStr=document.getElementById('prog-vel-sim').value;
+  const epStr=document.getElementById('prog-ep-sim').value;
+  const velOvr=velStr!==''?parseFloat(velStr):null;
+  const epOvr=epStr!==''?parseFloat(epStr):null;
+  const fad=progGetFadiga();
+  progItens.forEach(item=>{
+    const v=(velOvr!==null&&velOvr>0)?velOvr:item.vel;
+    const e=epOvr!==null?epOvr:item.entre_pecas;
+    const cxMin=(v>0&&(item.medida+e)>0)?calcCxMinRaw(v,item.medida,e)*(1-fad):0;
+    item.cx_min=parseFloat(cxMin.toFixed(4));
+    item.cx_h=Math.round(cxMin*60);
+    item.tempo_min=parseFloat((cxMin>0?(item.qtd_cx/cxMin):0).toFixed(1));
+  });
+  progRecalcularHorarios();progRenderTabela();progRenderResumo();
+  const msgs=[];
+  if(velOvr!==null&&velOvr>0)msgs.push(`vel ${velOvr} m/min`);
+  if(epOvr!==null)msgs.push(`ep ${epOvr} mm`);
+  progToast(msgs.length?`Simulação aplicada: ${msgs.join(', ')}.`:'Usando valores padrão de cada produto.','ok');
 }
 
 function progRenderTabela(){
