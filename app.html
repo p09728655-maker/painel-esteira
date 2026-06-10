@@ -517,7 +517,7 @@ td.td-actions { width: 80px; text-align: right; }
   td.td-num { text-align: right !important; }
   td.td-produto { white-space: normal !important; text-align: left !important; }
   #prog-card-resumo { display: block !important; page-break-inside: avoid; }
-  .resumo-grid { display: grid !important; grid-template-columns: repeat(8, 1fr) !important; gap: 6px !important; }
+  .resumo-grid { display: grid !important; grid-template-columns: repeat(9, 1fr) !important; gap: 6px !important; }
   .resumo-item { border: 1px solid #ccc !important; border-radius: 3px !important; padding: 6px 8px !important; background: #f8f8f8 !important; }
   .resumo-val { font-size: 16px !important; font-weight: 700 !important; color: #000 !important; }
   .resumo-lbl { font-size: 8px !important; color: #666 !important; margin-bottom: 3px !important; }
@@ -899,6 +899,7 @@ td.td-actions { width: 80px; text-align: right; }
         <div class="resumo-item"><div class="resumo-lbl">Total pontos</div><div class="resumo-val" id="prog-res-total-pontos" style="color:var(--warn)">—</div></div>
         <div class="resumo-item"><div class="resumo-lbl">Tempo troca</div><div class="resumo-val" id="prog-res-total-troca" style="color:var(--txt2)">—</div></div>
         <div class="resumo-item"><div class="resumo-lbl">Tempo total</div><div class="resumo-val" id="prog-res-tempo">—</div><div class="resumo-sub" id="prog-res-tempo-min"></div></div>
+        <div class="resumo-item" style="border-color:var(--accent)"><div class="resumo-lbl">Total + Troca</div><div class="resumo-val" id="prog-res-tempo-geral" style="color:var(--accent)">—</div><div class="resumo-sub" id="prog-res-tempo-geral-min"></div></div>
         <div class="resumo-item"><div class="resumo-lbl">Início</div><div class="resumo-val" id="prog-res-inicio" style="color:var(--txt2)">07:00</div></div>
         <div class="resumo-item"><div class="resumo-lbl">Previsão de término</div><div class="resumo-val" id="prog-res-fim" style="color:var(--accent)">—</div><div class="resumo-sub" id="prog-res-obs"></div></div>
       </div>
@@ -1916,6 +1917,9 @@ function progRenderResumo(){
   document.getElementById('prog-res-total-troca').textContent=totalTroca>0?fmtTempoHM(totalTroca):'—';
   document.getElementById('prog-res-tempo').textContent=fmtTempoHM(totalMin);
   document.getElementById('prog-res-tempo-min').textContent=`${Math.round(totalMin)} minutos`;
+  const totalGeral=totalMin+totalTroca;
+  document.getElementById('prog-res-tempo-geral').textContent=fmtTempoHM(totalGeral);
+  document.getElementById('prog-res-tempo-geral-min').textContent=`${Math.round(totalMin)}min prod + ${totalTroca}min troca`;
   document.getElementById('prog-res-inicio').textContent=TURNO_INICIO;
   document.getElementById('prog-res-fim').textContent=fimReal;
   const obs=document.getElementById('prog-res-obs');
