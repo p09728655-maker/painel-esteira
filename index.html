@@ -395,8 +395,8 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 .preview-specs { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--txt2); display: flex; gap: 16px; }
 .preview-specs span { color: var(--accent); }
 .tabela-prog { width: 100%; border-collapse: collapse; }
-.tabela-prog th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--txt2); padding: 6px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.tabela-prog td { padding: 6px 6px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+.tabela-prog th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--txt2); padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabela-prog td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
 .tabela-prog tr:last-child td { border-bottom: none; }
 .tabela-prog tr:hover td { background: rgba(255,255,255,0.02); }
 td.td-ordem { color: var(--txt2); font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 36px; }
@@ -859,7 +859,7 @@ td.td-actions { width: 80px; text-align: right; }
           <button class="btn btn-ok" onclick="progSalvarProgramacao()" id="prog-btn-salvar">Salvar no Sheets</button>
         </div>
       </div>
-      <table class="tabela-prog" style="overflow-x:auto;display:block;min-width:max-content">
+      <table class="tabela-prog">
         <thead>
           <tr>
             <th style="width:36px">#</th>
