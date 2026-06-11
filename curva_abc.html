@@ -3886,7 +3886,14 @@ function _modVerdict(m,meses){
   const taxaCanib=vendaNovas>0?perdaExistentes/vendaNovas:0;
   const pctCanib=(taxaCanib*100).toFixed(0);
   const nStr=`${novasCores.length} cor${novasCores.length>1?'es':''} nova${novasCores.length>1?'s':''}`;
-  const detalhes=`<span style="font-size:.78rem;color:var(--text-muted);font-weight:400;"> · Família: ${dsTot} · Canib: ${pctCanib}% · Líq: ${fmtBRL(incremento)} · ${nStr}</span>`;
+  // Launch date: label of earliest entry month
+  const lancamento=meses[entryIdx];
+  // Impact level (inverse of canibalization)
+  const impacto=taxaCanib<0.30?'Alto':taxaCanib<=0.70?'Médio':'Baixo';
+  // Confidence: based on months of post-launch data
+  const mesesPos=posMeses.length;
+  const confianca=mesesPos<4?'Baixa':mesesPos<=8?'Média':'Alta';
+  const detalhes=`<span style="font-size:.78rem;color:var(--text-muted);font-weight:400;"> · Família: ${dsTot} · Canib: ${pctCanib}% · Líq: ${fmtBRL(incremento)} · ${nStr} · Lançamento: ${lancamento} · Impacto: ${impacto} · Confiança: ${confianca}</span>`;
   // Classification
   if(deltaTotal<=0)
     return`<span style="color:#f87171">🔴 Sem Crescimento</span>${detalhes}`;
