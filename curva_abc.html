@@ -3917,85 +3917,70 @@ function _modVerdict(m,meses){
         blockLine=`<span style="display:block;font-size:.78rem;font-weight:400;color:var(--text-muted);margin-top:.1rem;">${bEmo} Últimos ${N} ${N>1?'meses':'mês'} vs ${N} anterior${N>1?'es':''}: ${bStr}</span>`;
       }
     }
-    // Indicador que dirige o veredito: bloco (mais robusto) quando há dados; senão mês a mês
-    const drv=blockDelta!==null?blockDelta:mom;
-    // Veredito por quadrantes — interpreta os indicadores JÁ calculados (não recalcula)
+    // Indicadores já calculados
     const curtoV=mom;                                   // Curto Prazo (último mês vs anterior)
     const consolV=blockDelta!==null?blockDelta:mom;     // Consolidado (bloco vs bloco)
-    // Classificação única — fonte oficial para título, alerta e resumo (sem contradição)
-    let badge,badgeTxt,descQuad,alertaTxt,alertaCor,resumoQuad;
-    if(curtoV>=0&&consolV>=0){
-      badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;badgeTxt='🟢 MODELO EM CRESCIMENTO';
-      descQuad='O crescimento é confirmado tanto no curto prazo quanto no consolidado.';
-      alertaTxt='📈 Crescimento confirmado no curto prazo e no consolidado.';alertaCor='#4ade80';
-      resumoQuad='O modelo apresenta crescimento consistente no curto prazo e no consolidado.';
-    }else if(curtoV>=0&&consolV<0){
-      badge=`<span style="color:#fbbf24">🟡 RECUPERAÇÃO EM ANDAMENTO</span>`;badgeTxt='🟡 RECUPERAÇÃO EM ANDAMENTO';
-      descQuad='O modelo apresentou recuperação no período mais recente, porém ainda permanece abaixo do desempenho consolidado do período comparativo.';
-      alertaTxt='⚠ Apesar da recuperação recente, o consolidado ainda permanece abaixo do período comparativo.';alertaCor='#fbbf24';
-      resumoQuad='O modelo apresenta sinais de recuperação, porém ainda não recuperou totalmente o desempenho do período comparativo.';
-    }else if(curtoV<0&&consolV>=0){
-      badge=`<span style="color:#fbbf24">🟡 PERDA DE FÔLEGO</span>`;badgeTxt='🟡 PERDA DE FÔLEGO';
-      descQuad='O modelo permanece positivo no consolidado, porém apresentou desaceleração no período mais recente.';
-      alertaTxt='⚠ O modelo permanece positivo no consolidado, mas apresentou desaceleração recente.';alertaCor='#fbbf24';
-      resumoQuad='O modelo permanece positivo no consolidado, mas demonstra desaceleração recente.';
-    }else{
-      badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;badgeTxt='🔴 MODELO EM QUEDA';
-      descQuad='A retração é observada tanto no curto prazo quanto no consolidado.';
-      alertaTxt='📉 Queda observada no curto prazo e no consolidado.';alertaCor='#f87171';
-      resumoQuad='O modelo apresenta retração consistente no curto prazo e no consolidado.';
-    }
-    // Mix health
-    const mix=redistribution<0.15?'Saudável':redistribution<=0.35?'Em transição':'Alta rotação';
-    // Canibalization classification + executive summary
-    const gLbl=gainer?_colorLabel(gainer.desc,prefix):'', lLbl=loser?_colorLabel(loser.desc,prefix):'';
-    let canibLine,canibDetail;
-    if(redistribution<0.15){
-      canibLine=`<span style="color:#4ade80">🟢 Sem evidência de canibalização</span>`;
-      canibDetail='As cores mantiveram participação semelhante, sem evidência relevante de canibalização.';
-    }else if(redistribution<=0.35){
-      canibLine=`<span style="color:#fbbf24">🟡 Mudança de mix entre cores</span>`;
-      canibDetail=gainer&&loser?`Foi identificada mudança de mix: ${gLbl} ganhou participação enquanto ${lLbl} perdeu volume.`:`Houve redistribuição de participação entre as cores do modelo.`;
-    }else{
-      canibLine=`<span style="color:#f87171">🔴 Possível canibalização detectada</span>`;
-      canibDetail=gainer&&loser?`Possível canibalização: o ganho de ${gLbl} ocorreu acompanhado da redução de ${lLbl}.`:`Possível canibalização: forte redistribuição entre as cores.`;
-    }
-    // Alerta vem da MESMA classificação do título (nunca contraditório)
-    const alerta=`<span style="display:block;font-size:.72rem;color:${alertaCor};margin-top:.15rem;max-width:440px;white-space:normal;line-height:1.35;">${alertaTxt}</span>`;
-    const l1=`<span style="font-size:.9rem;">${badge}</span>`;
-    const lDesc=`<span style="display:block;font-size:.74rem;font-weight:400;color:var(--text-muted);margin-top:.2rem;max-width:440px;white-space:normal;line-height:1.35;">${descQuad}</span>`;
-    const lMom=`<span style="display:block;font-size:.8rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;">${momEmo} ${lastM} vs ${prevM}: ${momStr}</span>`;
-    const lMix=`<span style="display:block;font-size:.78rem;font-weight:400;color:var(--text-muted);margin-top:.1rem;">Mix: ${mix} | Canib: ${canibPct}% (${canibBand})</span>`;
-    const l3=`<span style="display:block;font-size:.78rem;font-weight:400;margin-top:.1rem;">${canibLine} <span style="color:var(--text-muted)">| Confiança: ${confTxt}</span></span>`;
-    const l4=`<span style="display:block;font-size:.73rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;max-width:440px;white-space:normal;line-height:1.35;">${resumoQuad}</span>`;
-    // ── Auditoria: bloco consolidado (somas dos N meses) ──
+    const consolStr=(consolV>=0?'+':'')+consolV.toFixed(0)+'%';
+    // Somas dos blocos (para gap / oportunidade)
     const recN=meses.slice(-N), priN=meses.slice(-2*N,-N);
     const recSum=recN.reduce((s,x)=>s+(m.totalMes[x]||0),0);
     const priSum=priN.reduce((s,x)=>s+(m.totalMes[x]||0),0);
-    // ── Camada de inteligência comercial (não recalcula indicadores) ──
+    const gap=priSum>0?(priSum-recSum)/priSum*100:0;
+    // ── BLOCO 1: SITUAÇÃO (título) + CONCLUSÃO única (sem repetição) ──
+    let badge,badgeTxt,conclusao;
+    if(curtoV>=0&&consolV>=0){
+      badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;badgeTxt='🟢 MODELO EM CRESCIMENTO';
+      conclusao=`O modelo cresce de forma consistente: ${momStr} no último mês e ${consolStr} no período consolidado, indicando expansão sustentável da demanda.`;
+    }else if(curtoV>=0&&consolV<0){
+      badge=`<span style="color:#fbbf24">🟡 RECUPERAÇÃO EM ANDAMENTO</span>`;badgeTxt='🟡 RECUPERAÇÃO EM ANDAMENTO';
+      conclusao=`O modelo reagiu fortemente no último mês (${momStr}), porém ainda permanece ${gap.toFixed(1)}% abaixo do desempenho consolidado do período comparativo. A recuperação é consistente, mas ainda não foi suficiente para reverter totalmente a perda acumulada.`;
+    }else if(curtoV<0&&consolV>=0){
+      badge=`<span style="color:#fbbf24">🟡 PERDA DE FÔLEGO</span>`;badgeTxt='🟡 PERDA DE FÔLEGO';
+      conclusao=`O modelo mantém saldo positivo no consolidado (${consolStr}), mas desacelerou no último mês (${momStr}), sinalizando perda de ritmo da tendência de crescimento.`;
+    }else{
+      badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;badgeTxt='🔴 MODELO EM QUEDA';
+      conclusao=`O modelo recua de forma consistente: ${momStr} no último mês e ${consolStr} no consolidado, indicando redução de demanda ou perda de participação.`;
+    }
+    // Mix + canibalização (indicadores neutros sobre cores)
+    const mix=redistribution<0.15?'Saudável':redistribution<=0.35?'Em transição':'Alta rotação';
+    let canibTxt,canibCor;
+    if(redistribution<0.15){canibTxt='Sem evidência';canibCor='#4ade80';}
+    else if(redistribution<=0.35){canibTxt='Mudança de mix';canibCor='#fbbf24';}
+    else{canibTxt='Possível canibalização';canibCor='#f87171';}
+    // ── Montagem dos 4 blocos ──
+    const secHead=t=>`<span style="display:block;font-weight:700;font-size:.7rem;letter-spacing:.06em;color:var(--text-muted);margin-top:.5rem;opacity:.85;">${t}</span>`;
+    // BLOCO 1 — SITUAÇÃO (apenas o título)
+    const bSituacao=`<span style="font-size:.9rem;">${badge}</span>`;
+    // BLOCO 2 — INDICADORES (cada métrica aparece uma única vez)
+    let bInd=secHead('INDICADORES');
+    bInd+=`<span style="display:block;font-size:.78rem;color:var(--text-muted);margin-top:.12rem;">${momEmo} ${lastM} vs ${prevM}: ${momStr}</span>`;
+    if(blockLine)bInd+=blockLine;
+    bInd+=`<span style="display:block;font-size:.78rem;color:var(--text-muted);">🎨 Mix: ${mix}</span>`;
+    bInd+=`<span style="display:block;font-size:.78rem;">🔄 <span style="color:${canibCor}">${canibTxt}</span> <span style="color:var(--text-muted)">— ${canibPct}% (${canibBand})</span></span>`;
+    bInd+=`<span style="display:block;font-size:.78rem;color:var(--text-muted);">🎯 Confiança: ${confTxt}</span>`;
+    // BLOCO 3 — CONCLUSÃO (interpretação única)
+    const bConcl=secHead('CONCLUSÃO')+`<span style="display:block;font-size:.75rem;font-weight:400;color:var(--text);margin-top:.12rem;max-width:440px;white-space:normal;line-height:1.4;">${conclusao}</span>`;
+    // BLOCO 4 — OPORTUNIDADE COMERCIAL (somente ação, sem repetir interpretação)
     const oRow=(k,v,cor)=>`<span style="display:block;font-size:.75rem;color:var(--text-muted);">${k} <strong style="color:${cor||'var(--text)'}">${v}</strong></span>`;
     const oHead=(t,cor)=>`<span style="display:block;font-weight:700;font-size:.8rem;color:${cor};margin-bottom:.1rem;">${t}</span>`;
     let oport='', oportAud=null;
-    const _open='<div style="border-top:1px solid var(--border,#334155);margin-top:.45rem;padding-top:.4rem;max-width:440px;white-space:normal;line-height:1.4;">';
+    const _open='<div style="border-top:1px solid var(--border,#334155);margin-top:.5rem;padding-top:.4rem;max-width:440px;white-space:normal;line-height:1.4;">';
     if(curtoV>=0&&consolV>=0){
-      // 🚀 Expansão
       const potLevel=consolV>=25?'Alta':consolV>=10?'Média':'Baixa';
       oport+=_open+oHead('🚀 OPORTUNIDADE DE EXPANSÃO','#4ade80')
-        +oRow('Crescimento consolidado:',(consolV>=0?'+':'')+consolV.toFixed(0)+'%','#4ade80')
-        +oRow('Potencial:',potLevel)
-        +`<span style="display:block;font-size:.73rem;color:var(--text-muted);margin-top:.15rem;">O modelo apresenta crescimento consistente e potencial para ampliação de vendas.</span></div>`;
+        +oRow('Crescimento consolidado:',consolStr,'#4ade80')
+        +oRow('Potencial:',potLevel)+`</div>`;
       oportAud={tipo:'Expansão',crescimento:consolV,potencial:potLevel};
     }else if(consolV<0){
-      // 💰 Recuperação comercial
       const potencial=Math.max(0,priSum-recSum);
-      const gap=priSum>0?(priSum-recSum)/priSum*100:0;
+      const equiv=recSum>0?potencial/recSum*100:0;
       const prio=gap>25?['🔴 Alta','#f87171']:gap>=10?['🟡 Média','#fbbf24']:['🟢 Baixa','#4ade80'];
       oport+=_open+oHead('💰 OPORTUNIDADE COMERCIAL','#fbbf24')
         +oRow('Potencial de recuperação:',fmtBRL(potencial),'#fbbf24')
         +oRow('Gap para o comparativo:',gap.toFixed(1)+'%')
-        +oRow('Prioridade:',prio[0],prio[1])
-        +`<span style="display:block;font-size:.73rem;color:var(--text-muted);margin-top:.15rem;">O modelo possui potencial de recuperação de ${fmtBRL(potencial)} para retornar ao desempenho do período comparativo.</span></div>`;
-      oportAud={tipo:'Recuperação',potencial,gap,prioridade:prio[0]};
+        +oRow('Equivalente a:',`+${equiv.toFixed(0)}% sobre o resultado atual`)
+        +oRow('Prioridade:',prio[0],prio[1])+`</div>`;
+      oportAud={tipo:'Recuperação',potencial,gap,equiv,prioridade:prio[0]};
     }
     // 🎨 Oportunidade de mix (quando há redistribuição relevante entre cores)
     if(redistribution>=0.15&&gainer&&loser){
@@ -4006,7 +3991,7 @@ function _modVerdict(m,meses){
       oport+=_open+oHead('🎨 OPORTUNIDADE DE MIX','#60a5fa')
         +oRow('Cor em crescimento:',`${gLb} (${(gD>=0?'+':'')+gD.toFixed(0)}%)`,'#4ade80')
         +oRow('Cor em retração:',`${lLb} (${lD.toFixed(0)}%)`,'#f87171')
-        +`<span style="display:block;font-size:.73rem;color:var(--text-muted);margin-top:.15rem;">Existe oportunidade de reforçar estoque, exposição ou ações comerciais da cor com maior crescimento.</span></div>`;
+        +`<span style="display:block;font-size:.73rem;color:var(--text-muted);margin-top:.15rem;">Reforçar estoque, exposição e ações comerciais da cor em maior crescimento.</span></div>`;
       oportAud=oportAud||{};oportAud.mix={cresce:gLb,cresceDelta:gD,retrai:lLb,retraiDelta:lD};
     }
     _MOD_AUDIT={
@@ -4020,10 +4005,9 @@ function _modVerdict(m,meses){
       canibPct:Number(canibPct),canibBand,mix,confianca:confTxt,
       shares:(RI.shares||[]).map(s=>({label:_colorLabel(s.c.desc,prefix),sPre:s.sPre,sPos:s.sPos})),
       oportunidade:oportAud,
-      // resumo coerente com o título; detalhe de cores entra como complemento neutro
-      resumo:resumoQuad+' '+canibDetail
+      resumo:conclusao
     };
-    return l1+lDesc+lMom+blockLine+lMix+l3+alerta+l4+oport;
+    return bSituacao+bInd+bConcl+oport;
   }
   // Entry point: earliest month any new color appeared
   const entryIdx=Math.min(...novasCores.map(c=>c.firstIdx));
