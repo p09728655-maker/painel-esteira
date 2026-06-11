@@ -991,6 +991,9 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
     <section id="sec-modelos" style="display:none;">
       <div class="section-title">Análise por Modelo / Cor</div>
       <div class="mov-header" style="flex-wrap:wrap;gap:.6rem;align-items:center;">
+        <span class="mov-label">Família:</span>
+        <select id="mod-fam-filter" onchange="renderModelosTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;"><option value="">Todas</option></select>
+        <input id="mod-search-input" type="text" placeholder="Buscar modelo..." oninput="renderModelosTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;min-width:160px;">
         <span class="mov-label">Modelo:</span>
         <select id="mod-select" onchange="renderModelosTab()" style="min-width:340px;max-width:100%;padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;"></select>
         <span id="mod-verdict" style="margin-left:auto;font-weight:700;font-size:.9rem;display:inline-block;text-align:right;line-height:1.5;"></span>
@@ -3906,14 +3909,33 @@ function renderModelosTab(){
   const sel=document.getElementById('mod-select');
   const content=document.getElementById('mod-content');
   const verdEl=document.getElementById('mod-verdict');
+  const famSel=document.getElementById('mod-fam-filter');
+  const searchEl=document.getElementById('mod-search-input');
   if(!sel||!content)return;
   if(!PERIODOS.length){content.innerHTML='<p style="color:var(--text-muted);padding:2rem;">Carregue a planilha.</p>';if(verdEl)verdEl.innerHTML='';return;}
   const {meses,models}=buildModelos();
-  const arr=[...models.values()].map(m=>{m.name=_commonPrefixWords(m.descs)||('Modelo '+m.key);m.totGeral=meses.reduce((s,x)=>s+(m.totalMes[x]||0),0);return m;}).sort((a,b)=>b.totGeral-a.totGeral);
+  const arr=[...models.values()].map(m=>{m.name=_commonPrefixWords(m.descs)||('Modelo '+m.key);m.famKey=m.key.slice(0,3);m.totGeral=meses.reduce((s,x)=>s+(m.totalMes[x]||0),0);return m;}).sort((a,b)=>b.totGeral-a.totGeral);
+  // Build family filter options
+  if(famSel){
+    const famMap=new Map();
+    for(const m of arr){if(!famMap.has(m.famKey))famMap.set(m.famKey,_commonPrefixWords(arr.filter(x=>x.famKey===m.famKey).map(x=>x.name))||m.famKey);}
+    const prevFam=famSel.value;
+    famSel.innerHTML='<option value="">Todas</option>'+[...famMap.entries()].map(([k,v])=>`<option value="${k}">${k} · ${v}</option>`).join('');
+    if(prevFam&&[...famMap.keys()].includes(prevFam))famSel.value=prevFam;
+  }
+  // Apply filters
+  const famFilter=famSel?famSel.value:'';
+  const searchFilter=searchEl?searchEl.value.trim().toLowerCase():'';
+  const filtered=arr.filter(m=>{
+    if(famFilter&&m.famKey!==famFilter)return false;
+    if(searchFilter&&!m.name.toLowerCase().includes(searchFilter)&&!m.key.includes(searchFilter))return false;
+    return true;
+  });
   const prevVal=sel.value;
-  sel.innerHTML=arr.map(m=>`<option value="${m.key}">${m.name} (${m.key.slice(0,3)}·${m.key.slice(3,6)}) — ${fmtBRL(m.totGeral)}</option>`).join('');
-  if(prevVal&&arr.some(m=>m.key===prevVal))sel.value=prevVal;
-  const cur=models.get(sel.value)||arr[0];
+  sel.innerHTML=filtered.map(m=>`<option value="${m.key}">${m.famKey}·${m.key.slice(3,6)} · ${m.name} — ${fmtBRL(m.totGeral)}</option>`).join('');
+  if(!filtered.length){content.innerHTML='<p style="color:var(--text-muted);padding:2rem;">Nenhum modelo encontrado.</p>';if(verdEl)verdEl.innerHTML='';return;}
+  if(prevVal&&filtered.some(m=>m.key===prevVal))sel.value=prevVal;
+  const cur=models.get(sel.value)||filtered[0];
   if(!cur){content.innerHTML='';if(verdEl)verdEl.innerHTML='';return;}
   const prefix=_commonPrefixWords(cur.descs);
   const colTotal=c=>meses.reduce((s,x)=>s+(c.porMes[x]||0),0);
