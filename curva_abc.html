@@ -959,6 +959,10 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
         <span class="mov-period-badge" id="mov-period-from">—</span>
         <span class="mov-arrow">→</span>
         <span class="mov-period-badge" id="mov-period-to">—</span>
+        <label style="margin-left:auto;display:inline-flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.8rem;color:var(--text-muted);">
+          <input type="checkbox" id="mov-hide-exc" onchange="toggleMovExc(this.checked)" style="cursor:pointer;">
+          Ocultar exclusivos (EXC)
+        </label>
       </div>
       <div class="mov-cards" id="mov-cards"></div>
       <div style="overflow-x:auto;max-height:calc(100vh - 310px);overflow-y:auto;">
@@ -3985,8 +3989,9 @@ function renderMovTab(){
     const czCurr=String(rc[COL.CRUZADA]||'').trim().toUpperCase();
     const fatCurr=Number(rc[COL.FAT]||0);
 
+    const flagCurr=String(rc[COL.FLAG]||'').trim().toUpperCase();
     if(!rp){
-      rows.push({cod,desc:rc[COL.DESC]||'',cvPrev:'—',cqPrev:'—',czPrev:'—',fatPrev:0,cvCurr,cqCurr,czCurr,fatCurr,status:'new'});
+      rows.push({cod,desc:rc[COL.DESC]||'',cvPrev:'—',cqPrev:'—',czPrev:'—',fatPrev:0,cvCurr,cqCurr,czCurr,fatCurr,status:'new',flag:flagCurr});
       continue;
     }
     const cvPrev=String(rp[COL.ABC_VAL]||'').trim().toUpperCase();
@@ -3999,7 +4004,7 @@ function renderMovTab(){
     if(cvPrev&&cvCurr&&cvPrev!==cvCurr){
       status=_classRank(cvCurr)<_classRank(cvPrev)?'up':'down';
     }
-    rows.push({cod,desc:rc[COL.DESC]||'',cvPrev,cqPrev,czPrev,fatPrev,cvCurr,cqCurr,czCurr,fatCurr,status});
+    rows.push({cod,desc:rc[COL.DESC]||'',cvPrev,cqPrev,czPrev,fatPrev,cvCurr,cqCurr,czCurr,fatCurr,status,flag:flagCurr});
   }
 
   // Products in prev but not curr
@@ -4009,7 +4014,7 @@ function renderMovTab(){
     const cqPrev=String(rp[COL.ABC_QTD]||'').trim().toUpperCase();
     const czPrev=String(rp[COL.CRUZADA]||'').trim().toUpperCase();
     const fatPrev=Number(rp[COL.FAT]||0);
-    rows.push({cod,desc:rp[COL.DESC]||'',cvPrev,cqPrev,czPrev,fatPrev,cvCurr:'—',cqCurr:'—',czCurr:'—',fatCurr:0,status:'out'});
+    rows.push({cod,desc:rp[COL.DESC]||'',cvPrev,cqPrev,czPrev,fatPrev,cvCurr:'—',cqCurr:'—',czCurr:'—',fatCurr:0,status:'out',flag:String(rp[COL.FLAG]||'').trim().toUpperCase()});
   }
 
   // Counts
@@ -4054,8 +4059,21 @@ function renderMovTab(){
     const map={up:'<span class="badge-up">↑ SUBIU</span>',down:'<span class="badge-down">↓ DESCEU</span>',new:'<span class="badge-new">+ NOVO</span>',out:'<span class="badge-out">− SAIU</span>',stable:'<span class="badge-stable">= ESTÁVEL</span>'};
     return map[s]||'';
   };
+  // Selo de grande oscilação de faturamento (mesmo mantendo a classe)
+  const SWING_LIMIT=15;
+  const swingBadge=r=>{
+    if(!r.fatPrev||!r.fatCurr)return'';
+    const d=(r.fatCurr-r.fatPrev)/r.fatPrev*100;
+    if(Math.abs(d)<SWING_LIMIT)return'';
+    const up=d>0;
+    const bg=up?'rgba(74,222,128,.15)':'rgba(248,113,113,.15)';
+    const col=up?'#4ade80':'#f87171';
+    const txt=up?`🚀 +${d.toFixed(0)}%`:`⚠ ${d.toFixed(0)}%`;
+    return ` <span style="display:inline-block;margin-left:.3rem;padding:1px 6px;border-radius:6px;background:${bg};color:${col};font-weight:700;font-size:.68rem;white-space:nowrap;" title="Faturamento ${up?'subiu':'caiu'} ${Math.abs(d).toFixed(0)}%">${txt}</span>`;
+  };
 
-  const filtered=_movFilter==='all'?rows:rows.filter(r=>r.status===_movFilter);
+  let filtered=_movFilter==='all'?rows:rows.filter(r=>r.status===_movFilter);
+  if(_movHideExc) filtered=filtered.filter(r=>r.flag!=='EXC');
   // Sort: up first, then down, new, out, stable; within each by fatCurr desc
   const order={up:0,down:1,new:2,out:3,stable:4};
   filtered.sort((a,b)=>order[a.status]-order[b.status]||b.fatCurr-a.fatCurr);
@@ -4077,12 +4095,17 @@ function renderMovTab(){
     <td style="text-align:right;font-size:.75rem;">${fmt(r.fatPrev)}</td>
     <td style="text-align:right;font-size:.75rem;">${fmt(r.fatCurr)}</td>
     <td style="text-align:right;">${fmtDelta(r.fatPrev,r.fatCurr)}</td>
-    <td>${statusBadge(r.status)}</td>
+    <td>${statusBadge(r.status)}${swingBadge(r)}</td>
   </tr>`).join('');
 }
 
 function setMovFilter(f){
   _movFilter=f;
+  renderMovTab();
+}
+let _movHideExc=false;
+function toggleMovExc(v){
+  _movHideExc=!!v;
   renderMovTab();
 }
 
