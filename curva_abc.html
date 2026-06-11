@@ -4206,7 +4206,7 @@ function renderModelosTab(){
   const temFotos=FOTOS_MAP&&FOTOS_MAP.size>0;
   const thumb=c=>{
     const u=fotoDoCodigo(c.cod);
-    return u?`<a href="${u}" target="_blank" rel="noopener" title="Ampliar"><img src="${u}" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:5px;border:1px solid var(--border,#334155);display:block;margin:auto;" onerror="this.parentNode.innerHTML='—'"></a>`:'<span style="color:var(--text-muted);font-size:.7rem;">—</span>';
+    return u?`<a href="${u}" target="_blank" rel="noopener" title="Clique para ampliar"><img src="${u}" loading="lazy" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border,#334155);display:block;margin:auto;cursor:zoom-in;" onerror="this.parentNode.innerHTML='—'"></a>`:'<span style="color:var(--text-muted);font-size:.7rem;">—</span>';
   };
   const fotoTh=temFotos?'<th style="text-align:center">Foto</th>':'';
   const fotoTotalTd=temFotos?'<td></td>':'';
