@@ -3844,19 +3844,57 @@ function _colorLabel(desc,prefix){
 }
 function _modVerdict(m,meses){
   if(meses.length<2)return'';
-  const first=m.totalMes[meses[0]]||0;
-  const last=m.totalMes[meses[meses.length-1]]||0;
-  let novas=0;
-  for(const c of m.cores.values()){
-    const f0=c.porMes[meses[0]]||0, fL=c.porMes[meses[meses.length-1]]||0;
-    if(f0===0&&fL>0)novas++;
+  const coresArr=[...m.cores.values()];
+  // Classify each color as existing (had sales in first month) or new (entered later)
+  const existentes=[], novasCores=[];
+  for(const c of coresArr){
+    const firstIdx=meses.findIndex(mes=>(c.porMes[mes]||0)>0);
+    if(firstIdx===0) existentes.push(c);
+    else if(firstIdx>0) novasCores.push({...c,firstIdx});
   }
-  const delta=first>0?(last-first)/first*100:(last>0?100:0);
-  const ds=(delta>=0?'+':'')+delta.toFixed(0)+'%';
-  if(delta>=10)return `<span style="color:#4ade80">🚀 Cresceu ${ds}</span>`+(novas?` · ${novas} cor${novas>1?'es':''} nova${novas>1?'s':''}`:'');
-  if(novas>0&&delta>-10)return `<span style="color:#fbbf24">⚠ Canibalizou — cor nova entrou, total ${ds}</span>`;
-  if(delta<=-10)return `<span style="color:#f87171">🔻 Caiu ${ds}</span>`;
-  return `<span style="color:var(--text-muted)">≈ Estável ${ds}</span>`;
+  // Overall family growth: first vs last month
+  const totalFirst=m.totalMes[meses[0]]||0;
+  const totalLast=m.totalMes[meses[meses.length-1]]||0;
+  const deltaTotal=totalFirst>0?(totalLast-totalFirst)/totalFirst*100:(totalLast>0?100:0);
+  const dsTot=(deltaTotal>=0?'+':'')+deltaTotal.toFixed(0)+'%';
+  if(novasCores.length===0){
+    // No new colors — simple growth verdict
+    if(deltaTotal>=10)return`<span style="color:#4ade80">🚀 Cresceu ${dsTot}</span>`;
+    if(deltaTotal<=-10)return`<span style="color:#f87171">🔻 Caiu ${dsTot}</span>`;
+    return`<span style="color:var(--text-muted)">≈ Estável ${dsTot}</span>`;
+  }
+  // Entry point: earliest month any new color appeared
+  const entryIdx=Math.min(...novasCores.map(c=>c.firstIdx));
+  const preMeses=meses.slice(0,entryIdx);
+  const posMeses=meses.slice(entryIdx);
+  // Revenue of new colors in post-period
+  let vendaNovas=0;
+  for(const c of novasCores){
+    for(const mes of meses.slice(c.firstIdx)) vendaNovas+=(c.porMes[mes]||0);
+  }
+  // Loss of existing colors: avg before vs avg after entry
+  let perdaExistentes=0;
+  if(preMeses.length>0&&posMeses.length>0){
+    for(const c of existentes){
+      const antes=preMeses.reduce((s,mes)=>s+(c.porMes[mes]||0),0)/preMeses.length;
+      const depois=posMeses.reduce((s,mes)=>s+(c.porMes[mes]||0),0)/posMeses.length;
+      const perda=(antes-depois)*posMeses.length;
+      if(perda>0) perdaExistentes+=perda;
+    }
+  }
+  const incremento=vendaNovas-perdaExistentes;
+  const taxaCanib=vendaNovas>0?perdaExistentes/vendaNovas:0;
+  const pctCanib=(taxaCanib*100).toFixed(0);
+  const nStr=`${novasCores.length} cor${novasCores.length>1?'es':''} nova${novasCores.length>1?'s':''}`;
+  const detalhes=`<span style="font-size:.78rem;color:var(--text-muted);font-weight:400;"> · Família: ${dsTot} · Canib: ${pctCanib}% · Líq: ${fmtBRL(incremento)} · ${nStr}</span>`;
+  // Classification
+  if(deltaTotal<=0)
+    return`<span style="color:#f87171">🔴 Sem Crescimento</span>${detalhes}`;
+  if(taxaCanib<0.30)
+    return`<span style="color:#4ade80">🟢 Crescimento Real</span>${detalhes}`;
+  if(taxaCanib<=0.70)
+    return`<span style="color:#fbbf24">🟡 Crescimento Parcial</span>${detalhes}`;
+  return`<span style="color:#f87171">🔴 Canibalização Elevada</span>${detalhes}`;
 }
 function renderModelosTab(){
   const sel=document.getElementById('mod-select');
