@@ -3927,22 +3927,22 @@ function _modVerdict(m,meses){
       badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;badgeTxt='🟢 MODELO EM CRESCIMENTO';
       descQuad='O crescimento é confirmado tanto no curto prazo quanto no consolidado.';
       alertaTxt='📈 Crescimento confirmado no curto prazo e no consolidado.';alertaCor='#4ade80';
-      resumoQuad='O modelo apresenta crescimento consistente. O desempenho é positivo tanto no curto prazo quanto no consolidado, indicando expansão sustentável da demanda.';
+      resumoQuad='O modelo apresenta crescimento consistente no curto prazo e no consolidado.';
     }else if(curtoV>=0&&consolV<0){
       badge=`<span style="color:#fbbf24">🟡 RECUPERAÇÃO EM ANDAMENTO</span>`;badgeTxt='🟡 RECUPERAÇÃO EM ANDAMENTO';
       descQuad='O modelo apresentou recuperação no período mais recente, porém ainda permanece abaixo do desempenho consolidado do período comparativo.';
       alertaTxt='⚠ Apesar da recuperação recente, o consolidado ainda permanece abaixo do período comparativo.';alertaCor='#fbbf24';
-      resumoQuad='O modelo apresentou recuperação no período mais recente, porém ainda não recuperou totalmente o desempenho do período comparativo. O cenário indica reação positiva, mas a reversão da tendência ainda não está consolidada.';
+      resumoQuad='O modelo apresenta sinais de recuperação, porém ainda não recuperou totalmente o desempenho do período comparativo.';
     }else if(curtoV<0&&consolV>=0){
       badge=`<span style="color:#fbbf24">🟡 PERDA DE FÔLEGO</span>`;badgeTxt='🟡 PERDA DE FÔLEGO';
       descQuad='O modelo permanece positivo no consolidado, porém apresentou desaceleração no período mais recente.';
       alertaTxt='⚠ O modelo permanece positivo no consolidado, mas apresentou desaceleração recente.';alertaCor='#fbbf24';
-      resumoQuad='O modelo ainda apresenta resultado positivo no consolidado, porém houve perda de ritmo no período mais recente. O comportamento sugere desaceleração da tendência de crescimento.';
+      resumoQuad='O modelo permanece positivo no consolidado, mas demonstra desaceleração recente.';
     }else{
       badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;badgeTxt='🔴 MODELO EM QUEDA';
       descQuad='A retração é observada tanto no curto prazo quanto no consolidado.';
       alertaTxt='📉 Queda observada no curto prazo e no consolidado.';alertaCor='#f87171';
-      resumoQuad='O modelo apresenta retração consistente. A queda ocorre tanto no curto prazo quanto no consolidado, indicando redução da demanda ou perda de participação.';
+      resumoQuad='O modelo apresenta retração consistente no curto prazo e no consolidado.';
     }
     // Mix health
     const mix=redistribution<0.15?'Saudável':redistribution<=0.35?'Em transição':'Alta rotação';
