@@ -3921,11 +3921,20 @@ function _modVerdict(m,meses){
     // Veredito por quadrantes — interpreta os indicadores JÁ calculados (não recalcula)
     const curtoV=mom;                                   // Curto Prazo (último mês vs anterior)
     const consolV=blockDelta!==null?blockDelta:mom;     // Consolidado (bloco vs bloco)
-    let badge,badgeTxt;
-    if(curtoV>=0&&consolV>=0){badge=`<span style="color:#4ade80">🟢 Crescimento</span>`;badgeTxt='🟢 Crescimento';}
-    else if(curtoV>=0&&consolV<0){badge=`<span style="color:#fbbf24">🟡 Recuperação em andamento</span>`;badgeTxt='🟡 Recuperação em andamento';}
-    else if(curtoV<0&&consolV>=0){badge=`<span style="color:#fbbf24">🟡 Perda de fôlego</span>`;badgeTxt='🟡 Perda de fôlego';}
-    else{badge=`<span style="color:#f87171">🔴 Queda</span>`;badgeTxt='🔴 Queda';}
+    let badge,badgeTxt,descQuad;
+    if(curtoV>=0&&consolV>=0){
+      badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;badgeTxt='🟢 MODELO EM CRESCIMENTO';
+      descQuad='O crescimento é confirmado tanto no curto prazo quanto no consolidado.';
+    }else if(curtoV>=0&&consolV<0){
+      badge=`<span style="color:#fbbf24">🟡 RECUPERAÇÃO EM ANDAMENTO</span>`;badgeTxt='🟡 RECUPERAÇÃO EM ANDAMENTO';
+      descQuad='O modelo apresentou recuperação no período mais recente, porém ainda permanece abaixo do desempenho consolidado do período comparativo.';
+    }else if(curtoV<0&&consolV>=0){
+      badge=`<span style="color:#fbbf24">🟡 PERDA DE FÔLEGO</span>`;badgeTxt='🟡 PERDA DE FÔLEGO';
+      descQuad='O modelo permanece positivo no consolidado, porém apresentou desaceleração no período mais recente.';
+    }else{
+      badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;badgeTxt='🔴 MODELO EM QUEDA';
+      descQuad='A retração é observada tanto no curto prazo quanto no consolidado.';
+    }
     // Mix health
     const mix=redistribution<0.15?'Saudável':redistribution<=0.35?'Em transição':'Alta rotação';
     // Canibalization classification + executive summary
@@ -3947,6 +3956,7 @@ function _modVerdict(m,meses){
     if(blockDelta!==null&&blockDelta>=10&&mom<=-5) alerta=`<span style="display:block;font-size:.72rem;color:#fbbf24;margin-top:.1rem;">⚠ Atenção: apesar da alta no período, ${lastM} caiu ${momStr} vs ${prevM}.</span>`;
     else if(blockDelta!==null&&blockDelta<=-10&&mom>=5) alerta=`<span style="display:block;font-size:.72rem;color:#fbbf24;margin-top:.1rem;">⚠ Atenção: apesar da queda no período, ${lastM} subiu ${momStr} vs ${prevM}.</span>`;
     const l1=`<span style="font-size:.9rem;">${badge}</span>`;
+    const lDesc=`<span style="display:block;font-size:.74rem;font-weight:400;color:var(--text-muted);margin-top:.2rem;max-width:440px;white-space:normal;line-height:1.35;">${descQuad}</span>`;
     const lMom=`<span style="display:block;font-size:.8rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;">${momEmo} ${lastM} vs ${prevM}: ${momStr}</span>`;
     const lMix=`<span style="display:block;font-size:.78rem;font-weight:400;color:var(--text-muted);margin-top:.1rem;">Mix: ${mix} | Canib: ${canibPct}% (${canibBand})</span>`;
     const l3=`<span style="display:block;font-size:.78rem;font-weight:400;margin-top:.1rem;">${canibLine} <span style="color:var(--text-muted)">| Confiança: ${confTxt}</span></span>`;
@@ -3970,9 +3980,9 @@ function _modVerdict(m,meses){
       curto:{atualLabel:lastM,atual:tLast,compLabel:prevM,comp:tPrev,variacao:mom},
       canibPct:Number(canibPct),canibBand,mix,confianca:confTxt,
       shares:(_redistribIndex(m,meses).shares||[]).map(s=>({label:_colorLabel(s.c.desc,prefix),sPre:s.sPre,sPos:s.sPos})),
-      resumo:resumoAud
+      resumo:descQuad+' '+resumoAud
     };
-    return l1+lMom+blockLine+lMix+l3+alerta+l4;
+    return l1+lDesc+lMom+blockLine+lMix+l3+alerta+l4;
   }
   // Entry point: earliest month any new color appeared
   const entryIdx=Math.min(...novasCores.map(c=>c.firstIdx));
