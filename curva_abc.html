@@ -2133,7 +2133,7 @@ function finalizarCargaSheets(){
   applyFilters();
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     try{const m=computeMetrics();renderCharts(m);}catch(e){console.warn('[charts]',e);}
-    if(PERIODOS.length>1)renderEvoCharts();
+    if(PERIODOS.length>1)renderEvolucao();
   }));
 }
 
@@ -3803,6 +3803,7 @@ function switchTab(tab){
   });
   if(isClasses) renderClassesTab();
   if(isMov) renderMovTab();
+  if(isEvo && PERIODOS.length) renderEvolucao();
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 (function(){const u=localStorage.getItem('gs_last_url');if(u){const el=document.getElementById('gs-url');if(el)el.value=u;}})();
