@@ -947,7 +947,6 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
     <button class="tab-btn active" data-tab="analise">📊 Análise</button>
     <button class="tab-btn" data-tab="resumo">📋 Resumo Executivo</button>
     <button class="tab-btn" id="tab-btn-evolucao" data-tab="evolucao" style="display:none;">📈 Evolução Mensal</button>
-    <button class="tab-btn" id="tab-btn-classes" data-tab="classes" style="display:none;">✎ Editar Classes</button>
     <button class="tab-btn" id="tab-btn-mov" data-tab="mov" style="display:none;">📊 Movimentação</button>
   </div>
 
@@ -2155,7 +2154,7 @@ function finalizarCargaSheets(){
   importScreen.style.display='none';dashboardEl.style.display='flex';
   const sh=document.getElementById('btn-salvar-header');if(sh)sh.style.display='inline-flex';
   const bt=document.getElementById('btn-trocar');if(bt)bt.style.display='inline-flex';
-  ['tab-btn-evolucao','tab-btn-classes','tab-btn-mov'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='inline-block';});
+  ['tab-btn-evolucao','tab-btn-mov'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='inline-block';});
   renderPeriodoChips();
   // Padrão: abre já na Curva ABC consolidada dos últimos 3 meses (janela de 90 dias)
   consolidarPeriodos();
