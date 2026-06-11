@@ -77,6 +77,8 @@ select option { background: var(--surface); }
 }
 .app-tab:hover { background: var(--surface2); color: var(--txt); }
 .app-tab.active { background: var(--surface2); color: var(--accent); border-color: var(--accent); }
+.app-tab.destaque { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 10px rgba(255,92,31,.4); }
+.app-tab.destaque:hover { background: #e54e15; color: #fff; }
 .app-right {
   display: flex;
   align-items: center;
@@ -538,7 +540,7 @@ td.td-actions { width: 80px; text-align: right; }
     <button class="app-tab" onclick="switchTab('tv')">TV</button>
     <button class="app-tab" onclick="switchTab('programacao')">Programação</button>
     <button class="app-tab" onclick="switchTab('simulacoes')">Simulações</button>
-    <a class="app-tab" href="/curva-abc" style="text-decoration:none;">📊 Curva ABC</a>
+    <a class="app-tab destaque" href="/curva-abc" style="text-decoration:none;">📊 Curva ABC</a>
   </nav>
   <div class="app-right">
     <div id="app-conn-dot" title="Status Sheets"></div>
