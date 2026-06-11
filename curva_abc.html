@@ -3873,7 +3873,8 @@ function _redistribIndex(m,meses){
 }
 // Estado de auditoria do último veredito calculado (rastreabilidade total)
 let _MOD_AUDIT=null;
-function _modVerdict(m,meses){
+function _modVerdict(m,meses,ctx){
+  ctx=ctx||{};
   if(meses.length<2){_MOD_AUDIT=null;return'';}
   const coresArr=[...m.cores.values()];
   const prefix=_commonPrefixWords(coresArr.map(c=>c.desc));
@@ -3967,20 +3968,45 @@ function _modVerdict(m,meses){
     const _open='<div style="border-top:1px solid var(--border,#334155);margin-top:.5rem;padding-top:.4rem;max-width:440px;white-space:normal;line-height:1.4;">';
     if(curtoV>=0&&consolV>=0){
       const potLevel=consolV>=25?'Alta':consolV>=10?'Média':'Baixa';
+      const classe=ctx.classe||'C', part=(ctx.participacao||0).toFixed(1)+'%';
       oport+=_open+oHead('🚀 OPORTUNIDADE DE EXPANSÃO','#4ade80')
         +oRow('Crescimento consolidado:',consolStr,'#4ade80')
-        +oRow('Potencial:',potLevel)+`</div>`;
-      oportAud={tipo:'Expansão',crescimento:consolV,potencial:potLevel};
+        +oRow('Potencial:',potLevel)
+        +oRow('Impacto na Curva ABC:',`Classe ${classe}`)
+        +oRow('Participação no faturamento:',part)
+        +`<span style="display:block;font-weight:700;font-size:.73rem;color:var(--text-muted);margin-top:.35rem;">AÇÃO SUGERIDA</span>`
+        +`<span style="display:block;font-size:.72rem;color:var(--text-muted);margin-top:.1rem;">• Ampliar exposição e disponibilidade das cores em alta</span>`
+        +`<span style="display:block;font-size:.72rem;color:var(--text-muted);">• Avaliar aumento de produção/estoque para sustentar a demanda</span></div>`;
+      oportAud={tipo:'Expansão',crescimento:consolV,potencial:potLevel,classe,participacao:ctx.participacao||0};
     }else if(consolV<0){
       const potencial=Math.max(0,priSum-recSum);
       const equiv=recSum>0?potencial/recSum*100:0;
       const prio=gap>25?['🔴 Alta','#f87171']:gap>=10?['🟡 Média','#fbbf24']:['🟢 Baixa','#4ade80'];
+      const classe=ctx.classe||'C', part=(ctx.participacao||0).toFixed(1)+'%';
+      // Ação sugerida conforme prioridade
+      let motivo,acoes;
+      if(gap>25){
+        motivo=`Modelo Classe ${classe} com perda relevante de faturamento.`;
+        acoes=['Revisar carteira de pedidos','Avaliar ruptura de estoque','Verificar disponibilidade das cores mais vendidas','Analisar perda de participação no mix','Revisar desempenho comercial recente'];
+      }else if(gap>=10){
+        motivo='Modelo com potencial relevante de recuperação.';
+        acoes=['Monitorar evolução dos próximos meses','Avaliar comportamento por cor','Identificar oportunidades de reposição de volume'];
+      }else{
+        motivo='Modelo próximo ao desempenho esperado.';
+        acoes=['Apenas monitoramento','Manter estratégia atual'];
+      }
+      const acoesHtml=acoes.map(a=>`<span style="display:block;font-size:.72rem;color:var(--text-muted);">• ${a}</span>`).join('');
       oport+=_open+oHead('💰 OPORTUNIDADE COMERCIAL','#fbbf24')
         +oRow('Potencial de recuperação:',fmtBRL(potencial),'#fbbf24')
         +oRow('Gap para o comparativo:',gap.toFixed(1)+'%')
         +oRow('Equivalente a:',`+${equiv.toFixed(0)}% sobre o resultado atual`)
-        +oRow('Prioridade:',prio[0],prio[1])+`</div>`;
-      oportAud={tipo:'Recuperação',potencial,gap,equiv,prioridade:prio[0]};
+        +oRow('Prioridade:',prio[0],prio[1])
+        +oRow('Impacto na Curva ABC:',`Classe ${classe}`)
+        +oRow('Participação no faturamento:',part)
+        +`<span style="display:block;font-weight:700;font-size:.73rem;color:var(--text-muted);margin-top:.35rem;">AÇÃO SUGERIDA</span>`
+        +`<span style="display:block;font-size:.72rem;color:var(--text);margin-top:.1rem;">Motivo: ${motivo}</span>`
+        +acoesHtml+`</div>`;
+      oportAud={tipo:'Recuperação',potencial,gap,equiv,prioridade:prio[0],classe,participacao:ctx.participacao||0,motivo,acoes};
     }
     // 🎨 Oportunidade de mix (quando há redistribuição relevante entre cores)
     if(redistribution>=0.15&&gainer&&loser){
@@ -4134,7 +4160,12 @@ function renderModelosTab(){
   html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td><td></td></tr>`;
   html+='</tbody></table>';
   content.innerHTML=html;
-  if(verdEl)verdEl.innerHTML=_modVerdict(cur,meses);
+  // Contexto de negócio: classe ABC do modelo (Pareto sobre o portfólio) e participação
+  const grand=arr.reduce((s,x)=>s+(x.totGeral||0),0);
+  let cum=0; const classeMap=new Map();
+  for(const mm of arr){cum+=(mm.totGeral||0);const p=grand>0?cum/grand*100:0;classeMap.set(mm.key,p<=80?'A':p<=95?'B':'C');}
+  const ctx={classe:classeMap.get(cur.key)||'C',participacao:grand>0?(cur.totGeral||0)/grand*100:0};
+  if(verdEl)verdEl.innerHTML=_modVerdict(cur,meses,ctx);
   // Atualiza painel de auditoria se estiver aberto
   const auditPanel=document.getElementById('mod-audit-panel');
   if(auditPanel&&auditPanel.style.display!=='none')renderModAudit();
@@ -4193,7 +4224,11 @@ function renderModAudit(){
     const o=a.oportunidade;
     h+=`<div style="border-top:1px solid var(--border,#334155);padding-top:.6rem;margin-bottom:.6rem;"><div style="font-weight:700;color:var(--accent);margin-bottom:.3rem;">💰 OPORTUNIDADE COMERCIAL</div>`;
     if(o.tipo==='Expansão'){h+=row('Tipo:','🚀 Expansão');h+=row('Crescimento consolidado:',(o.crescimento>=0?'+':'')+o.crescimento.toFixed(0)+'%');h+=row('Potencial:',o.potencial);}
-    if(o.tipo==='Recuperação'){h+=row('Tipo:','Recuperação');h+=row('Potencial de recuperação:',fmtBRL(o.potencial));h+=row('Gap para o comparativo:',o.gap.toFixed(1)+'%');h+=row('Prioridade:',o.prioridade);}
+    if(o.tipo==='Recuperação'){h+=row('Tipo:','Recuperação');h+=row('Potencial de recuperação:',fmtBRL(o.potencial));h+=row('Gap para o comparativo:',o.gap.toFixed(1)+'%');if(o.equiv!=null)h+=row('Equivalente a:','+'+o.equiv.toFixed(0)+'% sobre o atual');h+=row('Prioridade:',o.prioridade);}
+    if(o.classe)h+=row('Impacto na Curva ABC:',`Classe ${o.classe}`);
+    if(o.participacao!=null)h+=row('Participação no faturamento:',o.participacao.toFixed(1)+'%');
+    if(o.motivo)h+=row('Motivo:',o.motivo);
+    if(o.acoes)h+=`<div style="margin-top:.2rem;">${o.acoes.map(x=>`<span style="display:block;color:var(--text-muted);">• ${x}</span>`).join('')}</div>`;
     if(o.mix){h+=row('Cor em crescimento:',`${o.mix.cresce} (${(o.mix.cresceDelta>=0?'+':'')+o.mix.cresceDelta.toFixed(0)}%)`);h+=row('Cor em retração:',`${o.mix.retrai} (${o.mix.retraiDelta.toFixed(0)}%)`);}
     h+=`</div>`;
   }
