@@ -996,8 +996,8 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
         <input id="mod-search-input" type="text" placeholder="Buscar modelo..." oninput="renderModelosTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;min-width:160px;">
         <span class="mov-label">Modelo:</span>
         <select id="mod-select" onchange="renderModelosTab()" style="min-width:340px;max-width:100%;padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;"></select>
-        <span id="mod-verdict" style="margin-left:auto;font-weight:700;font-size:.9rem;display:inline-block;text-align:right;line-height:1.5;"></span>
       </div>
+      <div id="mod-verdict" style="font-weight:700;font-size:.9rem;line-height:1.5;margin:.6rem 0;text-align:left;"></div>
       <div id="mod-hero" style="display:none;gap:1.1rem;flex-wrap:wrap;margin:.4rem 0 1rem;align-items:flex-start;"></div>
       <p style="color:var(--text-muted);font-size:.8rem;margin:.3rem 0 1rem;">Faturamento de cada cor do modelo, mês a mês. A linha laranja é o total do modelo — use o veredito para saber se uma cor nova somou venda (cresceu) ou apenas dividiu (canibalizou).</p>
       <div style="display:flex;align-items:center;gap:1rem;margin:.2rem 0 .8rem;flex-wrap:wrap;">
@@ -4084,7 +4084,11 @@ function _modVerdict(m,meses,ctx){
       oportunidade:oportAud,
       resumo:conclusao
     };
-    return bSituacao+bInd+bConcl+oport;
+    return `<div style="display:flex;flex-wrap:wrap;gap:.8rem 2.4rem;align-items:flex-start;text-align:left;">`
+      +`<div style="min-width:190px;flex:0 0 auto;">${bSituacao}${bInd}</div>`
+      +`<div style="min-width:230px;max-width:400px;flex:1 1 260px;">${bConcl}</div>`
+      +`<div style="min-width:240px;flex:1 1 260px;">${oport}</div>`
+      +`</div>`;
   }
   // Entry point: earliest month any new color appeared
   const entryIdx=Math.min(...novasCores.map(c=>c.firstIdx));
