@@ -3892,7 +3892,8 @@ function _modVerdict(m,meses){
   const confTxt=meses.length<3?'Baixa':meses.length<5?'Média':'Alta';
   if(novasCores.length===0){
     // No new colors — stability / mix-shift / canibalization diagnostic
-    const {redistribution,gainer,loser}=_redistribIndex(m,meses);
+    const RI=_redistribIndex(m,meses);
+    const {redistribution,gainer,loser}=RI;
     const canibPct=(redistribution*100).toFixed(0);
     const canibBand=redistribution<0.15?'Baixa':redistribution<=0.35?'Moderada':'Alta';
     // ── Comparações com base explícita ──
@@ -3971,6 +3972,43 @@ function _modVerdict(m,meses){
     const recN=meses.slice(-N), priN=meses.slice(-2*N,-N);
     const recSum=recN.reduce((s,x)=>s+(m.totalMes[x]||0),0);
     const priSum=priN.reduce((s,x)=>s+(m.totalMes[x]||0),0);
+    // ── Camada de inteligência comercial (não recalcula indicadores) ──
+    const oRow=(k,v,cor)=>`<span style="display:block;font-size:.75rem;color:var(--text-muted);">${k} <strong style="color:${cor||'var(--text)'}">${v}</strong></span>`;
+    const oHead=(t,cor)=>`<span style="display:block;font-weight:700;font-size:.8rem;color:${cor};margin-bottom:.1rem;">${t}</span>`;
+    let oport='', oportAud=null;
+    const _open='<div style="border-top:1px solid var(--border,#334155);margin-top:.45rem;padding-top:.4rem;max-width:440px;white-space:normal;line-height:1.4;">';
+    if(curtoV>=0&&consolV>=0){
+      // 🚀 Expansão
+      const potLevel=consolV>=25?'Alta':consolV>=10?'Média':'Baixa';
+      oport+=_open+oHead('🚀 OPORTUNIDADE DE EXPANSÃO','#4ade80')
+        +oRow('Crescimento consolidado:',(consolV>=0?'+':'')+consolV.toFixed(0)+'%','#4ade80')
+        +oRow('Potencial:',potLevel)
+        +`<span style="display:block;font-size:.73rem;color:var(--text-muted);margin-top:.15rem;">O modelo apresenta crescimento consistente e potencial para ampliação de vendas.</span></div>`;
+      oportAud={tipo:'Expansão',crescimento:consolV,potencial:potLevel};
+    }else if(consolV<0){
+      // 💰 Recuperação comercial
+      const potencial=Math.max(0,priSum-recSum);
+      const gap=priSum>0?(priSum-recSum)/priSum*100:0;
+      const prio=gap>25?['🔴 Alta','#f87171']:gap>=10?['🟡 Média','#fbbf24']:['🟢 Baixa','#4ade80'];
+      oport+=_open+oHead('💰 OPORTUNIDADE COMERCIAL','#fbbf24')
+        +oRow('Potencial de recuperação:',fmtBRL(potencial),'#fbbf24')
+        +oRow('Gap para o comparativo:',gap.toFixed(1)+'%')
+        +oRow('Prioridade:',prio[0],prio[1])
+        +`<span style="display:block;font-size:.73rem;color:var(--text-muted);margin-top:.15rem;">O modelo possui potencial de recuperação de ${fmtBRL(potencial)} para retornar ao desempenho do período comparativo.</span></div>`;
+      oportAud={tipo:'Recuperação',potencial,gap,prioridade:prio[0]};
+    }
+    // 🎨 Oportunidade de mix (quando há redistribuição relevante entre cores)
+    if(redistribution>=0.15&&gainer&&loser){
+      const sh=RI.shares||[];
+      const gS=sh.find(s=>s.c===gainer), lS=sh.find(s=>s.c===loser);
+      const gD=gS?(gS.sPos-gS.sPre)*100:0, lD=lS?(lS.sPos-lS.sPre)*100:0;
+      const gLb=_colorLabel(gainer.desc,prefix), lLb=_colorLabel(loser.desc,prefix);
+      oport+=_open+oHead('🎨 OPORTUNIDADE DE MIX','#60a5fa')
+        +oRow('Cor em crescimento:',`${gLb} (${(gD>=0?'+':'')+gD.toFixed(0)}%)`,'#4ade80')
+        +oRow('Cor em retração:',`${lLb} (${lD.toFixed(0)}%)`,'#f87171')
+        +`<span style="display:block;font-size:.73rem;color:var(--text-muted);margin-top:.15rem;">Existe oportunidade de reforçar estoque, exposição ou ações comerciais da cor com maior crescimento.</span></div>`;
+      oportAud=oportAud||{};oportAud.mix={cresce:gLb,cresceDelta:gD,retrai:lLb,retraiDelta:lD};
+    }
     _MOD_AUDIT={
       tipo:'estabilidade',
       veredito:badgeTxt,
@@ -3980,11 +4018,12 @@ function _modVerdict(m,meses){
       consol:{recLabels:recN,priLabels:priN,atual:recSum,comp:priSum,variacao:blockDelta},
       curto:{atualLabel:lastM,atual:tLast,compLabel:prevM,comp:tPrev,variacao:mom},
       canibPct:Number(canibPct),canibBand,mix,confianca:confTxt,
-      shares:(_redistribIndex(m,meses).shares||[]).map(s=>({label:_colorLabel(s.c.desc,prefix),sPre:s.sPre,sPos:s.sPos})),
+      shares:(RI.shares||[]).map(s=>({label:_colorLabel(s.c.desc,prefix),sPre:s.sPre,sPos:s.sPos})),
+      oportunidade:oportAud,
       // resumo coerente com o título; detalhe de cores entra como complemento neutro
       resumo:resumoQuad+' '+canibDetail
     };
-    return l1+lDesc+lMom+blockLine+lMix+l3+alerta+l4;
+    return l1+lDesc+lMom+blockLine+lMix+l3+alerta+l4+oport;
   }
   // Entry point: earliest month any new color appeared
   const entryIdx=Math.min(...novasCores.map(c=>c.firstIdx));
@@ -4165,6 +4204,15 @@ function renderModAudit(){
     h+=row('Incremento líquido:',fmtBRL(a.lancamento.incremento));
   }
   h+=`</div>`;
+  // Oportunidade comercial
+  if(a.oportunidade){
+    const o=a.oportunidade;
+    h+=`<div style="border-top:1px solid var(--border,#334155);padding-top:.6rem;margin-bottom:.6rem;"><div style="font-weight:700;color:var(--accent);margin-bottom:.3rem;">💰 OPORTUNIDADE COMERCIAL</div>`;
+    if(o.tipo==='Expansão'){h+=row('Tipo:','🚀 Expansão');h+=row('Crescimento consolidado:',(o.crescimento>=0?'+':'')+o.crescimento.toFixed(0)+'%');h+=row('Potencial:',o.potencial);}
+    if(o.tipo==='Recuperação'){h+=row('Tipo:','Recuperação');h+=row('Potencial de recuperação:',fmtBRL(o.potencial));h+=row('Gap para o comparativo:',o.gap.toFixed(1)+'%');h+=row('Prioridade:',o.prioridade);}
+    if(o.mix){h+=row('Cor em crescimento:',`${o.mix.cresce} (${(o.mix.cresceDelta>=0?'+':'')+o.mix.cresceDelta.toFixed(0)}%)`);h+=row('Cor em retração:',`${o.mix.retrai} (${o.mix.retraiDelta.toFixed(0)}%)`);}
+    h+=`</div>`;
+  }
   // Resumo executivo
   h+=`<div style="border-top:1px solid var(--border,#334155);padding-top:.6rem;"><div style="font-weight:700;margin-bottom:.2rem;">📝 Resumo executivo</div><div style="color:var(--text-muted);line-height:1.4;">${a.resumo}</div></div>`;
   // Debug técnico
