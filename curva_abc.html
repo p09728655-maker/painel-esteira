@@ -1425,26 +1425,6 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
             </div>
           </div>
         </div>
-
-        <!-- Tabela: Movimentação de Classe -->
-        <div>
-          <div class="section-title">🔀 Movimentação de Classe (Último Período)</div>
-          <div class="periodo-list">
-            <div style="overflow-x:auto;max-height:320px;overflow-y:auto;">
-              <table class="evo-rank-table">
-                <thead><tr>
-                  <th>Cód.</th><th>Produto</th>
-                  <th id="evo-move-th-p1">P1</th>
-                  <th></th>
-                  <th id="evo-move-th-p2">P2</th>
-                  <th style="text-align:right">Fat. Atual</th>
-                  <th style="text-align:right">Δ Fat.</th>
-                </tr></thead>
-                <tbody id="evo-moved-body"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -1874,41 +1854,8 @@ function renderEvolucao(){
       </tr>`).join('')
       :`<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text-muted);">Nenhum produto foi Classe A em todos os períodos.</td></tr>`;
     
-    // Movimentação: último vs penúltimo
-    const lastMap=maps[n-1], prevMap=maps[n-2];
-    const lastPeriod=PERIODOS[n-1], prevPeriod=PERIODOS[n-2];
-    document.getElementById('evo-move-th-p1').textContent=prevPeriod.label;
-    document.getElementById('evo-move-th-p2').textContent=lastPeriod.label;
-    const moved=[];
-    lastMap.forEach((r2,cod)=>{
-      const r1=prevMap.get(cod);
-      if(!r1)return;
-      const c1=String(r1[COL.ABC_VAL]||'').trim().toUpperCase();
-      const c2=String(r2[COL.ABC_VAL]||'').trim().toUpperCase();
-      if(c1&&c2&&c1!==c2){
-        const imp=(c1==='B'&&c2==='A')||(c1==='C'&&c2==='A')||(c1==='C'&&c2==='B');
-        moved.push({cod,desc:String(r2[COL.DESC]||''),c1,c2,fat2:num(r2,COL.FAT),dFat:num(r2,COL.FAT)-num(r1,COL.FAT),imp});
-      }
-    });
-    moved.sort((a,b)=>b.fat2-a.fat2);
-    const mvBody=document.getElementById('evo-moved-body');
-    mvBody.innerHTML=moved.length?moved.map(m=>{
-      const arrow=m.imp?'<span class="trend-up">↑</span>':'<span class="trend-down">↓</span>';
-      const dStr=m.dFat>=0?`<span class="trend-up">+${fmtBRL(m.dFat)}</span>`:`<span class="trend-down">${fmtBRL(m.dFat)}</span>`;
-      return `<tr>
-        <td style="font-family:monospace;font-size:.73rem;">${m.cod}</td>
-        <td title="${m.desc}">${m.desc.substring(0,32)}${m.desc.length>32?'…':''}</td>
-        <td style="text-align:center;"><span class="evo-class-badge ${m.c1}">${m.c1}</span></td>
-        <td style="text-align:center;">${arrow}</td>
-        <td style="text-align:center;"><span class="evo-class-badge ${m.c2}">${m.c2}</span></td>
-        <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtBRL(m.fat2)}</td>
-        <td style="text-align:right;">${dStr}</td>
-      </tr>`;
-    }).join('')
-    :`<tr><td colspan="7" style="text-align:center;padding:1rem;color:var(--text-muted);">Nenhum produto mudou de classe.</td></tr>`;
   } else {
     document.getElementById('evo-champions-body').innerHTML='<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text-muted);">Adicione ao menos 2 períodos.</td></tr>';
-    document.getElementById('evo-moved-body').innerHTML='<tr><td colspan="7" style="text-align:center;padding:1rem;color:var(--text-muted);">Adicione ao menos 2 períodos.</td></tr>';
   }
 }
 
@@ -2467,41 +2414,8 @@ function renderEvolucao(){
       </tr>`).join('')
       :`<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text-muted);">Nenhum produto foi Classe A em todos os períodos.</td></tr>`;
     
-    // Movimentação: último vs penúltimo
-    const lastMap=maps[n-1], prevMap=maps[n-2];
-    const lastPeriod=PERIODOS[n-1], prevPeriod=PERIODOS[n-2];
-    document.getElementById('evo-move-th-p1').textContent=prevPeriod.label;
-    document.getElementById('evo-move-th-p2').textContent=lastPeriod.label;
-    const moved=[];
-    lastMap.forEach((r2,cod)=>{
-      const r1=prevMap.get(cod);
-      if(!r1)return;
-      const c1=String(r1[COL.ABC_VAL]||'').trim().toUpperCase();
-      const c2=String(r2[COL.ABC_VAL]||'').trim().toUpperCase();
-      if(c1&&c2&&c1!==c2){
-        const imp=(c1==='B'&&c2==='A')||(c1==='C'&&c2==='A')||(c1==='C'&&c2==='B');
-        moved.push({cod,desc:String(r2[COL.DESC]||''),c1,c2,fat2:num(r2,COL.FAT),dFat:num(r2,COL.FAT)-num(r1,COL.FAT),imp});
-      }
-    });
-    moved.sort((a,b)=>b.fat2-a.fat2);
-    const mvBody=document.getElementById('evo-moved-body');
-    mvBody.innerHTML=moved.length?moved.map(m=>{
-      const arrow=m.imp?'<span class="trend-up">↑</span>':'<span class="trend-down">↓</span>';
-      const dStr=m.dFat>=0?`<span class="trend-up">+${fmtBRL(m.dFat)}</span>`:`<span class="trend-down">${fmtBRL(m.dFat)}</span>`;
-      return `<tr>
-        <td style="font-family:monospace;font-size:.73rem;">${m.cod}</td>
-        <td title="${m.desc}">${m.desc.substring(0,32)}${m.desc.length>32?'…':''}</td>
-        <td style="text-align:center;"><span class="evo-class-badge ${m.c1}">${m.c1}</span></td>
-        <td style="text-align:center;">${arrow}</td>
-        <td style="text-align:center;"><span class="evo-class-badge ${m.c2}">${m.c2}</span></td>
-        <td style="text-align:right;font-variant-numeric:tabular-nums;">${fmtBRL(m.fat2)}</td>
-        <td style="text-align:right;">${dStr}</td>
-      </tr>`;
-    }).join('')
-    :`<tr><td colspan="7" style="text-align:center;padding:1rem;color:var(--text-muted);">Nenhum produto mudou de classe.</td></tr>`;
   } else {
     document.getElementById('evo-champions-body').innerHTML='<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text-muted);">Adicione ao menos 2 períodos.</td></tr>';
-    document.getElementById('evo-moved-body').innerHTML='<tr><td colspan="7" style="text-align:center;padding:1rem;color:var(--text-muted);">Adicione ao menos 2 períodos.</td></tr>';
   }
 }
 
