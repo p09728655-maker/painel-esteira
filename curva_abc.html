@@ -2081,12 +2081,13 @@ function ehAbaDeFotos(name){return /foto|imagem|image|photo/i.test(String(name||
 function normalizarUrlFoto(u){
   u=String(u==null?'':u).trim();
   if(!u)return '';
-  // Google Drive: extrai o ID de vários formatos e gera link de thumbnail
+  // Google Drive: extrai o ID de vários formatos (file/d/, ?id=, /d/, thumbnail, lh3)
   let id='';
   let m=u.match(/\/file\/d\/([A-Za-z0-9_-]{20,})/)||u.match(/[?&]id=([A-Za-z0-9_-]{20,})/)||u.match(/\/d\/([A-Za-z0-9_-]{20,})/);
   if(m)id=m[1];
-  if(id)return `https://drive.google.com/thumbnail?id=${id}&sz=w600`;
-  return u; // já é link direto
+  // CDN do Google: formato mais confiável para incorporar imagens em outros sites
+  if(id)return `https://lh3.googleusercontent.com/d/${id}=w600`;
+  return u; // já é link direto (.jpg/.png, Imgur, etc.)
 }
 function lerFotos(wb){
   const map=new Map();
