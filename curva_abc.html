@@ -1351,7 +1351,7 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
           <span class="periodo-list-title">📅 Períodos Carregados</span>
           <div style="display:flex;gap:.5rem;">
             <button id="btn-recarregar" onclick="recarregarSheets()" title="Reler a planilha do Google Sheets">↺ Atualizar</button>
-            <button id="btn-consolidar" onclick="consolidarPeriodos()" title="Soma todos os meses carregados e abre análise ABC consolidada" disabled>📊 Ver Consolidado</button>
+            <button id="btn-consolidar" onclick="consolidarPeriodos()" title="Soma os últimos 3 meses (90 dias) e abre a Curva ABC consolidada" disabled>📊 Consolidado 3 meses</button>
             <button id="btn-clear-periodos" onclick="clearPeriodos()">✕ Limpar Todos</button>
           </div>
         </div>
@@ -1644,8 +1644,9 @@ function consolidarPeriodos(){
   if(!PERIODOS.length){alert('Adicione pelo menos 1 período para consolidar.');return;}
 
   // Aggregate by product code (sum QTD + FAT across all periods)
+  const usar=PERIODOS.slice(-3); // Curva ABC dos últimos 3 meses (janela de 90 dias)
   const map=new Map(); // cod → {desc, qtd, fat}
-  for(const periodo of PERIODOS){
+  for(const periodo of usar){
     for(const r of periodo.data){
       const cod=String(r[COL.COD]||'').trim();
       if(!cod)continue;
@@ -1671,9 +1672,9 @@ function consolidarPeriodos(){
       [COL.COD]:cod,
       [COL.DESC]:e.desc,
       [COL.QTD]:e.qtd,
-      [COL.QTD_MES]:PERIODOS.length>0?e.qtd/PERIODOS.length:0,
+      [COL.QTD_MES]:usar.length>0?e.qtd/usar.length:0,
       [COL.FAT]:e.fat,
-      [COL.FAT_MES]:PERIODOS.length>0?e.fat/PERIODOS.length:0,
+      [COL.FAT_MES]:usar.length>0?e.fat/usar.length:0,
       [COL.TICKET]:e.qtd>0?e.fat/e.qtd:0,
       [COL.ABC_VAL]:'',
       [COL.ABC_QTD]:'',
@@ -1692,7 +1693,7 @@ function consolidarPeriodos(){
   populateFamiliaFilter();
 
   // Labels: "Jan/26 + Fev/26 + Mar/26"
-  const labels=PERIODOS.map(p=>p.label).join(' + ');
+  const labels=usar.map(p=>p.label).join(' + ');
   const pi=document.getElementById('f-periodo');if(pi)pi.value=labels;
   const infoEl=document.getElementById('file-info-text');
   if(infoEl){infoEl.style.display='block';infoEl.textContent='Consolidado: '+labels+' · '+RAW.length+' produtos';}
@@ -1708,13 +1709,8 @@ function consolidarPeriodos(){
   const sh=document.getElementById('btn-salvar-header');if(sh)sh.style.display='inline-flex';
   const bt=document.getElementById('btn-trocar');if(bt)bt.style.display='inline-flex';
 
-  // Switch to portfolio tab
-  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.tab==='portfolio');
-  });
-  document.querySelectorAll('.tab-pane').forEach(pane=>{
-    pane.style.display=(pane.id==='tab-portfolio')?'block':'none';
-  });
+  // Mostra a aba Análise
+  switchTab('analise');
 
   updatePeriodo();
   applyFilters();
@@ -2114,27 +2110,18 @@ function recarregarSheets(){iniciarCargaSheets();}
 function showImportError(msg){importError.textContent='❌ '+msg;importError.style.display='block';}
 
 function finalizarCargaSheets(){
-  const ultimo=PERIODOS[PERIODOS.length-1];
-  RAW=ultimo.data;
-  const ab=document.getElementById('abc-auto-badge');if(ab)ab.classList.add('visible');
-  computeAcum();populateFamiliaFilter();
-  const pi=document.getElementById('f-periodo');if(pi)pi.value=ultimo.label;
   const now=new Date();
-  const infoEl=document.getElementById('file-info-text');
-  if(infoEl){infoEl.style.display='block';infoEl.textContent=PERIODOS.length+' período'+(PERIODOS.length>1?'s':'')+' · '+RAW.length+' produtos (último: '+ultimo.label+')';}
   const fd=document.getElementById('footer-date');
   if(fd)fd.textContent=now.toLocaleDateString('pt-BR')+' às '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   importScreen.style.display='none';dashboardEl.style.display='flex';
   const sh=document.getElementById('btn-salvar-header');if(sh)sh.style.display='inline-flex';
   const bt=document.getElementById('btn-trocar');if(bt)bt.style.display='inline-flex';
   ['tab-btn-evolucao','tab-btn-classes','tab-btn-mov'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='inline-block';});
-  renderPeriodoChips();updatePeriodo();
-  if(PERIODOS.length>1)switchTab('evolucao');
-  applyFilters();
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    try{const m=computeMetrics();renderCharts(m);}catch(e){console.warn('[charts]',e);}
-    if(PERIODOS.length>1)renderEvolucao();
-  }));
+  renderPeriodoChips();
+  // Padrão: abre já na Curva ABC consolidada dos últimos 3 meses (janela de 90 dias)
+  consolidarPeriodos();
+  // pré-renderiza os gráficos da Evolução Mensal (todos os meses carregados)
+  if(PERIODOS.length>1)requestAnimationFrame(()=>requestAnimationFrame(()=>{try{renderEvolucao();}catch(e){console.warn('[evo]',e);}}));
 }
 
 // ====================================================================
@@ -2211,8 +2198,9 @@ function consolidarPeriodos(){
   if(!PERIODOS.length){alert('Adicione pelo menos 1 período para consolidar.');return;}
 
   // Aggregate by product code (sum QTD + FAT across all periods)
+  const usar=PERIODOS.slice(-3); // Curva ABC dos últimos 3 meses (janela de 90 dias)
   const map=new Map(); // cod → {desc, qtd, fat}
-  for(const periodo of PERIODOS){
+  for(const periodo of usar){
     for(const r of periodo.data){
       const cod=String(r[COL.COD]||'').trim();
       if(!cod)continue;
@@ -2238,9 +2226,9 @@ function consolidarPeriodos(){
       [COL.COD]:cod,
       [COL.DESC]:e.desc,
       [COL.QTD]:e.qtd,
-      [COL.QTD_MES]:PERIODOS.length>0?e.qtd/PERIODOS.length:0,
+      [COL.QTD_MES]:usar.length>0?e.qtd/usar.length:0,
       [COL.FAT]:e.fat,
-      [COL.FAT_MES]:PERIODOS.length>0?e.fat/PERIODOS.length:0,
+      [COL.FAT_MES]:usar.length>0?e.fat/usar.length:0,
       [COL.TICKET]:e.qtd>0?e.fat/e.qtd:0,
       [COL.ABC_VAL]:'',
       [COL.ABC_QTD]:'',
@@ -2259,7 +2247,7 @@ function consolidarPeriodos(){
   populateFamiliaFilter();
 
   // Labels: "Jan/26 + Fev/26 + Mar/26"
-  const labels=PERIODOS.map(p=>p.label).join(' + ');
+  const labels=usar.map(p=>p.label).join(' + ');
   const pi=document.getElementById('f-periodo');if(pi)pi.value=labels;
   const infoEl=document.getElementById('file-info-text');
   if(infoEl){infoEl.style.display='block';infoEl.textContent='Consolidado: '+labels+' · '+RAW.length+' produtos';}
@@ -2275,13 +2263,8 @@ function consolidarPeriodos(){
   const sh=document.getElementById('btn-salvar-header');if(sh)sh.style.display='inline-flex';
   const bt=document.getElementById('btn-trocar');if(bt)bt.style.display='inline-flex';
 
-  // Switch to portfolio tab
-  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn=>{
-    btn.classList.toggle('active',btn.dataset.tab==='portfolio');
-  });
-  document.querySelectorAll('.tab-pane').forEach(pane=>{
-    pane.style.display=(pane.id==='tab-portfolio')?'block':'none';
-  });
+  // Mostra a aba Análise
+  switchTab('analise');
 
   updatePeriodo();
   applyFilters();
@@ -2522,9 +2505,10 @@ function lerPeriodo(ws){
 }
 
 function updatePeriodo(){
-  const p=document.getElementById('f-periodo').value.trim();
-  document.getElementById('header-periodo').textContent=p?'· Período: '+p:'';
-  document.getElementById('footer-periodo').textContent=p?' · Período: '+p:'';
+  const fp=document.getElementById('f-periodo');
+  const p=fp?fp.value.trim():'';
+  const hp=document.getElementById('header-periodo'); if(hp)hp.textContent=p?'· Período: '+p:'';
+  const ft=document.getElementById('footer-periodo'); if(ft)ft.textContent=p?' · Período: '+p:'';
 }
 
 function computeAcum(){
