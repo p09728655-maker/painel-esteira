@@ -3917,8 +3917,16 @@ function renderModelosTab(){
   const arr=[...models.values()].map(m=>{m.name=_commonPrefixWords(m.descs)||('Modelo '+m.key);m.famKey=m.key.slice(0,3);m.totGeral=meses.reduce((s,x)=>s+(m.totalMes[x]||0),0);return m;}).sort((a,b)=>b.totGeral-a.totGeral);
   // Build family filter options
   if(famSel){
+    // arr is sorted by revenue desc, so first model of each family is its top seller
     const famMap=new Map();
-    for(const m of arr){if(!famMap.has(m.famKey))famMap.set(m.famKey,_commonPrefixWords(arr.filter(x=>x.famKey===m.famKey).map(x=>x.name))||m.famKey);}
+    for(const m of arr){
+      if(famMap.has(m.famKey))continue;
+      const famModels=arr.filter(x=>x.famKey===m.famKey);
+      const pref=_commonPrefixWords(famModels.map(x=>x.name));
+      // fallback to top-seller's name when there's no shared prefix
+      const label=pref||famModels[0].name;
+      famMap.set(m.famKey,label);
+    }
     const prevFam=famSel.value;
     famSel.innerHTML='<option value="">Todas</option>'+[...famMap.entries()].map(([k,v])=>`<option value="${k}">${k} · ${v}</option>`).join('');
     if(prevFam&&[...famMap.keys()].includes(prevFam))famSel.value=prevFam;
