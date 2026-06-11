@@ -1563,7 +1563,7 @@ async function parsePDFToData(file){
         [COL.ABC_QTD]:'',
         [COL.CRUZADA]:'',
         [COL.ESTRATEGIA]:'',
-        [COL.FLAG]:'',
+        [COL.FLAG]:FLAGS_FIXOS.get(normCod(cod))||'',
       });
     }
   }
@@ -1680,7 +1680,7 @@ function consolidarPeriodos(){
       [COL.ABC_QTD]:'',
       [COL.CRUZADA]:'',
       [COL.ESTRATEGIA]:'',
-      [COL.FLAG]:'',
+      [COL.FLAG]:FLAGS_FIXOS.get(normCod(cod))||'',
     });
   }
 
@@ -2057,6 +2057,42 @@ function sortPeriodosChron(){
 // Carrega TODAS as abas de uma vez baixando o .xlsx (export) e lendo com SheetJS.
 // Mais robusto que adivinhar nomes via gviz: pega os nomes reais das abas,
 // em qualquer formato (JAN-26, Jan/26, ...), num único request.
+// ── FLAGS FIXOS ──────────────────────────────────────────────────────
+// Aba na planilha que lista produtos sempre marcados como EXC (ou LANÇ),
+// pra não precisar marcar à mão. Nome da aba: contém "EXC", "FLAG" ou "FIXO".
+// Colunas: Código (obrigatória) e Flag (opcional; vazio = EXC).
+let FLAGS_FIXOS=new Map(); // codNormalizado -> 'EXC' | 'LANÇ'
+const normCod=s=>String(s==null?'':s).replace(/[.\s]/g,'').trim().toUpperCase();
+function ehAbaDeFlags(name){return /exc|flag|fixo/i.test(String(name||''));}
+function lerFlagsFixos(wb){
+  const map=new Map();
+  for(const sheetName of wb.SheetNames){
+    if(!ehAbaDeFlags(sheetName))continue;
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,raw:true,defval:null,blankrows:false});
+    if(!aoa.length)continue;
+    let codIdx=-1,flagIdx=-1,headerIdx=-1;
+    for(let i=0;i<Math.min(aoa.length,10);i++){
+      const row=aoa[i]||[];
+      const c=row.findIndex(x=>/cod|código|code/i.test(String(x==null?'':x)));
+      if(c>=0){codIdx=c;flagIdx=row.findIndex(x=>/flag|tipo/i.test(String(x==null?'':x)));headerIdx=i;break;}
+    }
+    if(codIdx<0){codIdx=0;flagIdx=-1;headerIdx=-1;} // sem cabeçalho: 1ª coluna = código
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const row=aoa[i]||[];
+      const cod=normCod(row[codIdx]);
+      if(!cod||/^(COD|CODIGO|CÓDIGO|CODE|TOTAL)$/i.test(cod))continue;
+      let flag='EXC';
+      if(flagIdx>=0&&row[flagIdx]!=null){const v=String(row[flagIdx]).trim().toUpperCase();if(v.indexOf('LAN')===0)flag='LANÇ';else if(v)flag='EXC';}
+      map.set(cod,flag);
+    }
+  }
+  return map;
+}
+function aplicarFlagsFixos(rows){
+  if(!FLAGS_FIXOS||!FLAGS_FIXOS.size)return;
+  for(const r of rows){const f=FLAGS_FIXOS.get(normCod(r[COL.COD]));if(f)r[COL.FLAG]=f;}
+}
+
 async function carregarDoSheets(spreadsheetId){
   const progEl=document.getElementById('gs-status-text');
   if(progEl)progEl.textContent='Baixando planilha...';
@@ -2074,12 +2110,15 @@ async function carregarDoSheets(spreadsheetId){
   let wb;
   try{wb=XLSX.read(buf,{type:'array',cellFormula:false,cellNF:false,cellText:false});}
   catch(e){throw new Error('Não consegui ler a planilha. Confirme que o link é de uma planilha Google válida.');}
+  FLAGS_FIXOS=lerFlagsFixos(wb);
   PERIODOS=[];
   for(const sheetName of wb.SheetNames){
+    if(ehAbaDeFlags(sheetName))continue;
     const ws=wb.Sheets[sheetName];
     if(!ws)continue;
     const rows=parseWorksheetToData(ws);
     if(!rows.length)continue;
+    aplicarFlagsFixos(rows);
     calcABCDinamico(rows);
     PERIODOS.push({label:normalizeMonthLabel(sheetName),data:rows,fat:sumFat(rows),qtd:sumQtd(rows),ticket:sumQtd(rows)>0?sumFat(rows)/sumQtd(rows):0});
   }
@@ -2234,7 +2273,7 @@ function consolidarPeriodos(){
       [COL.ABC_QTD]:'',
       [COL.CRUZADA]:'',
       [COL.ESTRATEGIA]:'',
-      [COL.FLAG]:'',
+      [COL.FLAG]:FLAGS_FIXOS.get(normCod(cod))||'',
     });
   }
 
