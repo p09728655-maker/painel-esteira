@@ -1261,6 +1261,13 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
             <tbody id="summary-qtd-body"></tbody>
           </table>
         </div>
+        <div class="summary-card" style="grid-column:1/-1;">
+          <h4>Distribuição por Cruzada (Valor × Quantidade)</h4>
+          <table class="summary-table">
+            <thead><tr><th>Cruzada</th><th>Produtos</th><th>% Prod.</th><th>Faturamento</th><th>% Fat.</th></tr></thead>
+            <tbody id="summary-cruzada-body"></tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -2577,6 +2584,7 @@ function resetAll(){
   document.getElementById('table-body').innerHTML='';
   document.getElementById('summary-val-body').innerHTML='';
   document.getElementById('summary-qtd-body').innerHTML='';
+  const _cb=document.getElementById('summary-cruzada-body');if(_cb)_cb.innerHTML='';
   document.getElementById('insights-list').innerHTML='';
   document.getElementById('flag-impact-banner').classList.remove('visible','mode-exc','mode-lanc','mode-linha');
   activeFlags.clear();
@@ -3048,6 +3056,38 @@ function renderKPIs(metrics){
 function renderSummary(){
   renderSummaryTable('summary-val-body',COL.ABC_VAL,filtered);
   renderSummaryTable('summary-qtd-body',COL.ABC_QTD,filtered);
+  renderCruzadaTable(filtered);
+}
+
+const CRUZADA_ORDER=['AA','AB','AC','BA','BB','BC','CA','CB','CC','EXC_A','EXC_B','EXC_C','LANÇ_A','LANÇ_B','LANÇ_C'];
+function renderCruzadaTable(data){
+  const tbody=document.getElementById('summary-cruzada-body');
+  if(!tbody)return;
+  const totalProd=data.length, totalFat=sumFat(data);
+  const groups={};
+  data.forEach(r=>{
+    const cz=String(r[COL.CRUZADA]||'').trim().toUpperCase();
+    if(!cz)return;
+    (groups[cz]=groups[cz]||{prods:0,fat:0});
+    groups[cz].prods++; groups[cz].fat+=num(r,COL.FAT);
+  });
+  const keys=[...CRUZADA_ORDER.filter(k=>groups[k]),...Object.keys(groups).filter(k=>!CRUZADA_ORDER.includes(k))];
+  tbody.innerHTML=keys.map(cz=>{
+    const g=groups[cz];
+    return `<tr>
+      <td>${cruzadaBadge(cz)}</td>
+      <td class="num">${fmtInt(g.prods)}</td>
+      <td class="num">${totalProd>0?fmtPct(g.prods/totalProd*100):'—'}</td>
+      <td class="num">${fmtBRL(g.fat)}</td>
+      <td class="num">${totalFat>0?fmtPct(g.fat/totalFat*100):'—'}</td>
+    </tr>`;
+  }).join('')+`<tr>
+      <td><strong>Total</strong></td>
+      <td class="num"><strong>${fmtInt(totalProd)}</strong></td>
+      <td class="num"><strong>100%</strong></td>
+      <td class="num"><strong>${fmtBRL(totalFat)}</strong></td>
+      <td class="num"><strong>100%</strong></td>
+    </tr>`;
 }
 
 function renderSummaryTable(bodyId,classCol,data){
