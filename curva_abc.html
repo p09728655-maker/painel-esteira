@@ -3871,18 +3871,18 @@ function switchTab(tab){
   const isEvo=tab==='evolucao';
   const isClasses=tab==='classes';
   const isMov=tab==='mov';
+  const isModelos=tab==='modelos';
   document.getElementById('sec-resumo-exec').style.display=isResumo?'block':'none';
   document.getElementById('sec-classes').style.display=isClasses?'block':'none';
   document.getElementById('sec-mov').style.display=isMov?'block':'none';
   const secEvo=document.getElementById('sec-evolucao');
   if(secEvo) secEvo.style.display=isEvo?'flex':'none';
-  ALL_ANALYSIS_SECTIONS.filter(id=>id!=='sec-evolucao').forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.style.display=(isResumo||isEvo||isClasses||isMov)?'none':'';
-  });
-  const isModelos=tab==='modelos';
   const secMod=document.getElementById('sec-modelos');
   if(secMod) secMod.style.display=isModelos?'block':'none';
+  ALL_ANALYSIS_SECTIONS.filter(id=>id!=='sec-evolucao').forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.style.display=(isResumo||isEvo||isClasses||isMov||isModelos)?'none':'';
+  });
   if(isClasses) renderClassesTab();
   if(isMov) renderMovTab();
   if(isEvo && PERIODOS.length) renderEvolucao();
