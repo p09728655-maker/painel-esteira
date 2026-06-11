@@ -3918,11 +3918,14 @@ function _modVerdict(m,meses){
     }
     // Indicador que dirige o veredito: bloco (mais robusto) quando há dados; senão mês a mês
     const drv=blockDelta!==null?blockDelta:mom;
-    // Status badge — sempre coerente com a base mostrada
-    let badge;
-    if(drv>=10) badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;
-    else if(drv<=-10) badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;
-    else badge=`<span style="color:#4ade80">🟢 MODELO ESTÁVEL</span>`;
+    // Veredito por quadrantes — interpreta os indicadores JÁ calculados (não recalcula)
+    const curtoV=mom;                                   // Curto Prazo (último mês vs anterior)
+    const consolV=blockDelta!==null?blockDelta:mom;     // Consolidado (bloco vs bloco)
+    let badge,badgeTxt;
+    if(curtoV>=0&&consolV>=0){badge=`<span style="color:#4ade80">🟢 Crescimento</span>`;badgeTxt='🟢 Crescimento';}
+    else if(curtoV>=0&&consolV<0){badge=`<span style="color:#fbbf24">🟡 Recuperação em andamento</span>`;badgeTxt='🟡 Recuperação em andamento';}
+    else if(curtoV<0&&consolV>=0){badge=`<span style="color:#fbbf24">🟡 Perda de fôlego</span>`;badgeTxt='🟡 Perda de fôlego';}
+    else{badge=`<span style="color:#f87171">🔴 Queda</span>`;badgeTxt='🔴 Queda';}
     // Mix health
     const mix=redistribution<0.15?'Saudável':redistribution<=0.35?'Em transição':'Alta rotação';
     // Canibalization classification + executive summary
@@ -3952,7 +3955,6 @@ function _modVerdict(m,meses){
     const recN=meses.slice(-N), priN=meses.slice(-2*N,-N);
     const recSum=recN.reduce((s,x)=>s+(m.totalMes[x]||0),0);
     const priSum=priN.reduce((s,x)=>s+(m.totalMes[x]||0),0);
-    const badgeTxt=drv>=10?'🟢 Modelo em crescimento':drv<=-10?'🔴 Modelo em queda':'🟢 Modelo estável';
     let resumoAud=resumo;
     if(blockDelta!==null){
       if(blockDelta>=10&&mom<=-5) resumoAud=`O último mês (${lastM}) apresentou retração de ${momStr} em relação a ${prevM}. Entretanto, o período consolidado permanece ${(blockDelta>=0?'+':'')+blockDelta.toFixed(0)}% acima do período comparativo. O crescimento exibido refere-se ao período consolidado, não ao último mês.`;
