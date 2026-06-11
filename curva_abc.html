@@ -3923,8 +3923,8 @@ function renderModelosTab(){
       if(famMap.has(m.famKey))continue;
       const famModels=arr.filter(x=>x.famKey===m.famKey);
       const pref=_commonPrefixWords(famModels.map(x=>x.name));
-      // fallback to top-seller's name when there's no shared prefix
-      const label=pref||famModels[0].name;
+      // só usa nome quando há prefixo comum a todos; senão é uma família mista
+      const label=pref?pref:`${famModels.length} modelo${famModels.length>1?'s':''}`;
       famMap.set(m.famKey,label);
     }
     const prevFam=famSel.value;
