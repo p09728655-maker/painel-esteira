@@ -3886,10 +3886,33 @@ function _modVerdict(m,meses){
     const {redistribution,gainer,loser}=_redistribIndex(m,meses);
     const canibPct=(redistribution*100).toFixed(0);
     const canibBand=redistribution<0.15?'Baixa':redistribution<=0.35?'Moderada':'Alta';
-    // Status badge
+    // ── Comparações com base explícita ──
+    // (1) Mês a mês: último vs penúltimo
+    const lastM=meses[meses.length-1], prevM=meses[meses.length-2];
+    const tLast=m.totalMes[lastM]||0, tPrev=m.totalMes[prevM]||0;
+    const mom=tPrev>0?(tLast-tPrev)/tPrev*100:(tLast>0?100:0);
+    const momStr=(mom>=0?'+':'')+mom.toFixed(0)+'%';
+    const momEmo=mom>1?'📈':mom<-1?'📉':'➡️';
+    // (2) Bloco: média dos últimos N vs N meses anteriores
+    const N=Math.min(3,Math.floor(meses.length/2));
+    let blockDelta=null,blockLine='';
+    if(N>=1){
+      const recent=meses.slice(-N), prior=meses.slice(-2*N,-N);
+      if(prior.length){
+        const avgR=recent.reduce((s,x)=>s+(m.totalMes[x]||0),0)/recent.length;
+        const avgP=prior.reduce((s,x)=>s+(m.totalMes[x]||0),0)/prior.length;
+        blockDelta=avgP>0?(avgR-avgP)/avgP*100:(avgR>0?100:0);
+        const bStr=(blockDelta>=0?'+':'')+blockDelta.toFixed(0)+'%';
+        const bEmo=blockDelta>1?'📈':blockDelta<-1?'📉':'➡️';
+        blockLine=`<span style="display:block;font-size:.78rem;font-weight:400;color:var(--text-muted);margin-top:.1rem;">${bEmo} Últimos ${N} ${N>1?'meses':'mês'} vs ${N} anterior${N>1?'es':''}: ${bStr}</span>`;
+      }
+    }
+    // Indicador que dirige o veredito: bloco (mais robusto) quando há dados; senão mês a mês
+    const drv=blockDelta!==null?blockDelta:mom;
+    // Status badge — sempre coerente com a base mostrada
     let badge;
-    if(deltaTotal>=10) badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;
-    else if(deltaTotal<=-10) badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;
+    if(drv>=10) badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;
+    else if(drv<=-10) badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;
     else badge=`<span style="color:#4ade80">🟢 MODELO ESTÁVEL</span>`;
     // Mix health
     const mix=redistribution<0.15?'Saudável':redistribution<=0.35?'Em transição':'Alta rotação';
@@ -3898,7 +3921,7 @@ function _modVerdict(m,meses){
     let canibLine,resumo;
     if(redistribution<0.15){
       canibLine=`<span style="color:#4ade80">🟢 Sem evidência de canibalização</span>`;
-      const estado=deltaTotal>=10?'em crescimento':deltaTotal<=-10?'em queda':'estável';
+      const estado=drv>=10?'em crescimento':drv<=-10?'em queda':'estável';
       resumo=`Modelo ${estado}. As cores mantiveram participação semelhante, sem evidência relevante de canibalização.`;
     }else if(redistribution<=0.35){
       canibLine=`<span style="color:#fbbf24">🟡 Mudança de mix entre cores</span>`;
@@ -3907,11 +3930,16 @@ function _modVerdict(m,meses){
       canibLine=`<span style="color:#f87171">🔴 Possível canibalização detectada</span>`;
       resumo=gainer&&loser?`Possível canibalização. O ganho de ${gLbl} ocorreu acompanhado da redução de ${lLbl}.`:`Possível canibalização: forte redistribuição entre as cores.`;
     }
+    // Aviso quando o último mês contraria a tendência do bloco
+    let alerta='';
+    if(blockDelta!==null&&blockDelta>=10&&mom<=-5) alerta=`<span style="display:block;font-size:.72rem;color:#fbbf24;margin-top:.1rem;">⚠ Atenção: apesar da alta no período, ${lastM} caiu ${momStr} vs ${prevM}.</span>`;
+    else if(blockDelta!==null&&blockDelta<=-10&&mom>=5) alerta=`<span style="display:block;font-size:.72rem;color:#fbbf24;margin-top:.1rem;">⚠ Atenção: apesar da queda no período, ${lastM} subiu ${momStr} vs ${prevM}.</span>`;
     const l1=`<span style="font-size:.9rem;">${badge}</span>`;
-    const l2=`<span style="display:block;font-size:.8rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;">Variação: ${dsTot} | Mix: ${mix} | Canib: ${canibPct}% (${canibBand})</span>`;
+    const lMom=`<span style="display:block;font-size:.8rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;">${momEmo} ${lastM} vs ${prevM}: ${momStr}</span>`;
+    const lMix=`<span style="display:block;font-size:.78rem;font-weight:400;color:var(--text-muted);margin-top:.1rem;">Mix: ${mix} | Canib: ${canibPct}% (${canibBand})</span>`;
     const l3=`<span style="display:block;font-size:.78rem;font-weight:400;margin-top:.1rem;">${canibLine} <span style="color:var(--text-muted)">| Confiança: ${confTxt}</span></span>`;
-    const l4=`<span style="display:block;font-size:.73rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;max-width:420px;white-space:normal;line-height:1.35;">${resumo}</span>`;
-    return l1+l2+l3+l4;
+    const l4=`<span style="display:block;font-size:.73rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;max-width:440px;white-space:normal;line-height:1.35;">${resumo}</span>`;
+    return l1+lMom+blockLine+lMix+l3+alerta+l4;
   }
   // Entry point: earliest month any new color appeared
   const entryIdx=Math.min(...novasCores.map(c=>c.firstIdx));
@@ -3937,14 +3965,19 @@ function _modVerdict(m,meses){
   const pctCanib=(taxaCanib*100).toFixed(0);
   const nStr=`${novasCores.length} cor${novasCores.length>1?'es':''} nova${novasCores.length>1?'s':''}`;
   const lancamento=meses[entryIdx];
+  // Crescimento da família coerente com o rótulo: média pré vs média pós lançamento
+  const avgPre=preMeses.length?preMeses.reduce((s,x)=>s+(m.totalMes[x]||0),0)/preMeses.length:0;
+  const avgPos=posMeses.length?posMeses.reduce((s,x)=>s+(m.totalMes[x]||0),0)/posMeses.length:0;
+  const deltaLanc=avgPre>0?(avgPos-avgPre)/avgPre*100:(avgPos>0?100:0);
+  const dsLanc=(deltaLanc>=0?'+':'')+deltaLanc.toFixed(0)+'%';
   const impacto=taxaCanib<0.30?'Alto':taxaCanib<=0.70?'Médio':'Baixo';
   const mesesPos=posMeses.length;
   const historico=mesesPos<4?'Inicial':mesesPos<=8?'Parcial':'Consolidado';
   const tipImpacto=taxaCanib<0.30?'A nova cor gerou crescimento relevante para a família.':taxaCanib<=0.70?'Parte do crescimento veio da migração entre cores.':'A maior parte das vendas da nova cor substituiu vendas existentes.';
   const tipLiq='Valor efetivamente agregado à família do produto após descontar a canibalização das cores existentes.';
-  const l2=`<span style="display:block;font-size:.8rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;">Família: ${dsTot} | Canib: ${pctCanib}% | <span title="${tipLiq}" style="cursor:help;border-bottom:1px dotted currentColor;">Líq</span>: ${fmtBRL(incremento)}</span>`;
+  const l2=`<span style="display:block;font-size:.8rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;">Família (média pós vs pré lançamento): ${dsLanc} | Canib: ${pctCanib}% | <span title="${tipLiq}" style="cursor:help;border-bottom:1px dotted currentColor;">Líq</span>: ${fmtBRL(incremento)}</span>`;
   const l3=`<span style="display:block;font-size:.75rem;font-weight:400;color:var(--text-muted);margin-top:.1rem;">${nStr} | Lançamento: ${lancamento} | <span title="${tipImpacto}" style="cursor:help;border-bottom:1px dotted currentColor;">Impacto: ${impacto}</span> | Histórico: ${historico}</span>`;
-  if(deltaTotal<=0)
+  if(deltaLanc<=0)
     return`<span style="color:#f87171">🔴 Sem Crescimento</span>${l2}${l3}`;
   if(taxaCanib<0.30)
     return`<span style="color:#4ade80">🟢 Crescimento Real</span>${l2}${l3}`;
