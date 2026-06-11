@@ -948,6 +948,7 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
     <button class="tab-btn" data-tab="resumo">📋 Resumo Executivo</button>
     <button class="tab-btn" id="tab-btn-evolucao" data-tab="evolucao" style="display:none;">📈 Evolução Mensal</button>
     <button class="tab-btn" id="tab-btn-mov" data-tab="mov" style="display:none;">📊 Movimentação</button>
+    <button class="tab-btn" id="tab-btn-modelos" data-tab="modelos" style="display:none;">🎨 Modelos/Cores</button>
   </div>
 
   <main>
@@ -984,6 +985,18 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
           <tbody id="mov-tbody"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- MODELOS / CORES -->
+    <section id="sec-modelos" style="display:none;">
+      <div class="section-title">Análise por Modelo / Cor</div>
+      <div class="mov-header" style="flex-wrap:wrap;gap:.6rem;align-items:center;">
+        <span class="mov-label">Modelo:</span>
+        <select id="mod-select" onchange="renderModelosTab()" style="min-width:340px;max-width:100%;padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;"></select>
+        <span id="mod-verdict" style="margin-left:auto;font-weight:700;font-size:.9rem;"></span>
+      </div>
+      <p style="color:var(--text-muted);font-size:.8rem;margin:.3rem 0 1rem;">Faturamento de cada cor do modelo, mês a mês. A linha laranja é o total do modelo — use o veredito para saber se uma cor nova somou venda (cresceu) ou apenas dividiu (canibalizou).</p>
+      <div id="mod-content" style="overflow-x:auto;"></div>
     </section>
 
     <!-- EDITAR CLASSES -->
@@ -2165,7 +2178,7 @@ function finalizarCargaSheets(){
   importScreen.style.display='none';dashboardEl.style.display='flex';
   const sh=document.getElementById('btn-salvar-header');if(sh)sh.style.display='inline-flex';
   const bt=document.getElementById('btn-trocar');if(bt)bt.style.display='inline-flex';
-  ['tab-btn-evolucao','tab-btn-mov'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='inline-block';});
+  ['tab-btn-evolucao','tab-btn-mov','tab-btn-modelos'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='inline-block';});
   renderPeriodoChips();
   // Padrão: abre já na Curva ABC consolidada dos últimos 3 meses (janela de 90 dias)
   consolidarPeriodos();
@@ -3867,9 +3880,96 @@ function switchTab(tab){
     const el=document.getElementById(id);
     if(el)el.style.display=(isResumo||isEvo||isClasses||isMov)?'none':'';
   });
+  const isModelos=tab==='modelos';
+  const secMod=document.getElementById('sec-modelos');
+  if(secMod) secMod.style.display=isModelos?'block':'none';
   if(isClasses) renderClassesTab();
   if(isMov) renderMovTab();
   if(isEvo && PERIODOS.length) renderEvolucao();
+  if(isModelos) renderModelosTab();
+}
+
+// ====================================================================
+// MODELOS / CORES — agrupa por código Família(3)+Modelo(3); cor = 3 últimos
+// ====================================================================
+function buildModelos(){
+  const periodos=PERIODOS;
+  const meses=periodos.map(p=>p.label);
+  const models=new Map();
+  for(const p of periodos){
+    for(const r of p.data){
+      const codFull=String(r[COL.COD]||'').replace(/[.\s]/g,'').trim();
+      if(!codFull)continue;
+      const key=codFull.slice(0,6);
+      let m=models.get(key);
+      if(!m){m={key,cores:new Map(),totalMes:{},descs:[]};models.set(key,m);}
+      let c=m.cores.get(codFull);
+      if(!c){c={cod:codFull,desc:String(r[COL.DESC]||'').trim(),porMes:{}};m.cores.set(codFull,c);m.descs.push(c.desc);}
+      const fat=num(r,COL.FAT);
+      c.porMes[p.label]=(c.porMes[p.label]||0)+fat;
+      m.totalMes[p.label]=(m.totalMes[p.label]||0)+fat;
+    }
+  }
+  return {meses,models};
+}
+function _commonPrefixWords(descs){
+  if(!descs||!descs.length)return'';
+  const split=descs.map(d=>String(d).toUpperCase().split(/\s+/));
+  let pref=split[0];
+  for(const w of split.slice(1)){
+    let i=0;while(i<pref.length&&i<w.length&&pref[i]===w[i])i++;
+    pref=pref.slice(0,i);
+    if(!pref.length)break;
+  }
+  return pref.join(' ');
+}
+function _colorLabel(desc,prefix){
+  const up=String(desc).toUpperCase();
+  if(prefix&&up.startsWith(prefix)){const c=String(desc).slice(prefix.length).trim();if(c)return c;}
+  return desc;
+}
+function _modVerdict(m,meses){
+  if(meses.length<2)return'';
+  const first=m.totalMes[meses[0]]||0;
+  const last=m.totalMes[meses[meses.length-1]]||0;
+  let novas=0;
+  for(const c of m.cores.values()){
+    const f0=c.porMes[meses[0]]||0, fL=c.porMes[meses[meses.length-1]]||0;
+    if(f0===0&&fL>0)novas++;
+  }
+  const delta=first>0?(last-first)/first*100:(last>0?100:0);
+  const ds=(delta>=0?'+':'')+delta.toFixed(0)+'%';
+  if(delta>=10)return `<span style="color:#4ade80">🚀 Cresceu ${ds}</span>`+(novas?` · ${novas} cor${novas>1?'es':''} nova${novas>1?'s':''}`:'');
+  if(novas>0&&delta>-10)return `<span style="color:#fbbf24">⚠ Canibalizou — cor nova entrou, total ${ds}</span>`;
+  if(delta<=-10)return `<span style="color:#f87171">🔻 Caiu ${ds}</span>`;
+  return `<span style="color:var(--text-muted)">≈ Estável ${ds}</span>`;
+}
+function renderModelosTab(){
+  const sel=document.getElementById('mod-select');
+  const content=document.getElementById('mod-content');
+  const verdEl=document.getElementById('mod-verdict');
+  if(!sel||!content)return;
+  if(!PERIODOS.length){content.innerHTML='<p style="color:var(--text-muted);padding:2rem;">Carregue a planilha.</p>';if(verdEl)verdEl.innerHTML='';return;}
+  const {meses,models}=buildModelos();
+  const arr=[...models.values()].map(m=>{m.name=_commonPrefixWords(m.descs)||('Modelo '+m.key);m.totGeral=meses.reduce((s,x)=>s+(m.totalMes[x]||0),0);return m;}).sort((a,b)=>b.totGeral-a.totGeral);
+  const prevVal=sel.value;
+  sel.innerHTML=arr.map(m=>`<option value="${m.key}">${m.name} (${m.key.slice(0,3)}·${m.key.slice(3,6)}) — ${fmtBRL(m.totGeral)}</option>`).join('');
+  if(prevVal&&arr.some(m=>m.key===prevVal))sel.value=prevVal;
+  const cur=models.get(sel.value)||arr[0];
+  if(!cur){content.innerHTML='';if(verdEl)verdEl.innerHTML='';return;}
+  const prefix=_commonPrefixWords(cur.descs);
+  const colTotal=c=>meses.reduce((s,x)=>s+(c.porMes[x]||0),0);
+  const cores=[...cur.cores.values()].sort((a,b)=>colTotal(b)-colTotal(a));
+  const cell=v=>v?fmtBRL(v):'<span style="color:var(--text-muted)">—</span>';
+  let html='<table class="mov-table"><thead><tr><th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th></tr></thead><tbody>';
+  for(const c of cores){
+    const cl=_colorLabel(c.desc,prefix);
+    html+=`<tr><td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td></tr>`;
+  }
+  html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td></tr>`;
+  html+='</tbody></table>';
+  content.innerHTML=html;
+  if(verdEl)verdEl.innerHTML=_modVerdict(cur,meses);
 }
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
 (function(){const u=localStorage.getItem('gs_last_url');if(u){const el=document.getElementById('gs-url');if(el)el.value=u;}})();
