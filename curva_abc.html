@@ -2142,7 +2142,8 @@ function finalizarCargaSheets(){
 // ====================================================================
 let PERIODOS=[]; // [{label, data:[], fat, qtd, ticket}]
 
-document.getElementById('file-input-periodo').addEventListener('change',function(e){
+const _fileInputPeriodo=document.getElementById('file-input-periodo');
+if(_fileInputPeriodo) _fileInputPeriodo.addEventListener('change',function(e){
   const files=Array.from(e.target.files);
   files.forEach(f=>loadPeriodo(f));
   e.target.value='';
