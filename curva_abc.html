@@ -998,6 +998,7 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
         <select id="mod-select" onchange="renderModelosTab()" style="min-width:340px;max-width:100%;padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;"></select>
         <span id="mod-verdict" style="margin-left:auto;font-weight:700;font-size:.9rem;display:inline-block;text-align:right;line-height:1.5;"></span>
       </div>
+      <div id="mod-hero" style="display:none;gap:1.1rem;flex-wrap:wrap;margin:.4rem 0 1rem;align-items:flex-start;"></div>
       <p style="color:var(--text-muted);font-size:.8rem;margin:.3rem 0 1rem;">Faturamento de cada cor do modelo, mês a mês. A linha laranja é o total do modelo — use o veredito para saber se uma cor nova somou venda (cresceu) ou apenas dividiu (canibalizou).</p>
       <div style="display:flex;align-items:center;gap:1rem;margin:.2rem 0 .8rem;flex-wrap:wrap;">
         <button id="mod-audit-btn" onclick="toggleModAudit()" style="background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;padding:.35rem .7rem;font-size:.8rem;cursor:pointer;font-family:inherit;">🔍 Como este resultado foi calculado?</button>
@@ -4202,23 +4203,31 @@ function renderModelosTab(){
     if(d<-0.1)return'<span title="Caindo" style="color:#f87171">↓</span>';
     return'<span title="Estável" style="color:var(--text-muted)">→</span>';
   };
-  // Miniatura da foto (quando houver na aba FOTOS); cai do código da cor para o do modelo
+  // Galeria grande de fotos por cor (quando houver na aba FOTOS); cai do código da cor p/ modelo
   const temFotos=FOTOS_MAP&&FOTOS_MAP.size>0;
-  const thumb=c=>{
-    const u=fotoDoCodigo(c.cod);
-    return u?`<a href="${u}" target="_blank" rel="noopener" title="Clique para ampliar"><img src="${u}" loading="lazy" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border,#334155);display:block;margin:auto;cursor:zoom-in;" onerror="this.parentNode.innerHTML='—'"></a>`:'<span style="color:var(--text-muted);font-size:.7rem;">—</span>';
-  };
-  const fotoTh=temFotos?'<th style="text-align:center">Foto</th>':'';
-  const fotoTotalTd=temFotos?'<td></td>':'';
-  let html='<table class="mov-table"><thead><tr>'+fotoTh+'<th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th><th style="text-align:center">Tend.</th></tr></thead><tbody>';
+  let html='<table class="mov-table"><thead><tr><th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th><th style="text-align:center">Tend.</th></tr></thead><tbody>';
   for(const c of cores){
     const cl=_colorLabel(c.desc,prefix);
-    const fotoTd=temFotos?`<td style="text-align:center">${thumb(c)}</td>`:'';
-    html+=`<tr>${fotoTd}<td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td><td style="text-align:center;font-weight:700;">${trend(c)}</td></tr>`;
+    html+=`<tr><td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td><td style="text-align:center;font-weight:700;">${trend(c)}</td></tr>`;
   }
-  html+=`<tr style="border-top:2px solid var(--accent);">${fotoTotalTd}<td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td><td></td></tr>`;
+  html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td><td></td></tr>`;
   html+='</tbody></table>';
   content.innerHTML=html;
+  // Galeria grande de fotos por cor — ocupa o espaço livre acima da tabela
+  const heroEl=document.getElementById('mod-hero');
+  if(heroEl){
+    const comFoto=temFotos?cores.filter(c=>fotoDoCodigo(c.cod)):[];
+    if(comFoto.length){
+      heroEl.style.display='flex';
+      heroEl.innerHTML=comFoto.map(c=>{
+        const u=fotoDoCodigo(c.cod), cl=_colorLabel(c.desc,prefix);
+        return `<a href="${u}" target="_blank" rel="noopener" title="Clique para ampliar" style="text-decoration:none;color:inherit;text-align:center;">`
+          +`<img src="${u}" loading="lazy" style="width:160px;height:160px;object-fit:cover;border-radius:10px;border:1px solid var(--border,#334155);display:block;cursor:zoom-in;" onerror="this.parentNode.style.display='none'">`
+          +`<span style="display:block;font-size:.78rem;margin-top:.35rem;font-weight:600;">${cl}</span>`
+          +`<span style="display:block;font-size:.72rem;color:var(--text-muted);">${fmtBRL(colTotal(c))}</span></a>`;
+      }).join('');
+    }else{heroEl.style.display='none';heroEl.innerHTML='';}
+  }
   // Contexto de negócio: classe ABC do modelo (Pareto sobre o portfólio) e participação
   const grand=arr.reduce((s,x)=>s+(x.totGeral||0),0);
   let cum=0; const classeMap=new Map();
