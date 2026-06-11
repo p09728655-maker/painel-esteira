@@ -3845,9 +3845,29 @@ function _colorLabel(desc,prefix){
   if(prefix&&up.startsWith(prefix)){const c=String(desc).slice(prefix.length).trim();if(c)return c;}
   return desc;
 }
+// Redistribution index between colors: shares of first-half avg vs second-half avg.
+// Returns {redistribution 0..1, gainer color, loser color}.
+function _redistribIndex(m,meses){
+  const cores=[...m.cores.values()];
+  const half=Math.max(1,Math.floor(meses.length/2));
+  const preM=meses.slice(0,half), posM=meses.slice(half);
+  const avg=(c,arr)=>arr.length?arr.reduce((s,x)=>s+(c.porMes[x]||0),0)/arr.length:0;
+  const preAvg=cores.map(c=>avg(c,preM)), posAvg=cores.map(c=>avg(c,posM));
+  const totPre=preAvg.reduce((s,v)=>s+v,0), totPos=posAvg.reduce((s,v)=>s+v,0);
+  if(totPre<=0||totPos<=0)return{redistribution:0,gainer:null,loser:null};
+  let redist=0,gainer=null,loser=null,gMax=-1,lMax=-1;
+  cores.forEach((c,i)=>{
+    const sPre=preAvg[i]/totPre, sPos=posAvg[i]/totPos, d=sPos-sPre;
+    redist+=Math.abs(d);
+    if(d>gMax){gMax=d;gainer=c;}
+    if(-d>lMax){lMax=-d;loser=c;}
+  });
+  return{redistribution:redist/2,gainer:gMax>0.02?gainer:null,loser:lMax>0.02?loser:null};
+}
 function _modVerdict(m,meses){
   if(meses.length<2)return'';
   const coresArr=[...m.cores.values()];
+  const prefix=_commonPrefixWords(coresArr.map(c=>c.desc));
   // Classify each color as existing (had sales in first month) or new (entered later)
   const existentes=[], novasCores=[];
   for(const c of coresArr){
@@ -3860,11 +3880,38 @@ function _modVerdict(m,meses){
   const totalLast=m.totalMes[meses[meses.length-1]]||0;
   const deltaTotal=totalFirst>0?(totalLast-totalFirst)/totalFirst*100:(totalLast>0?100:0);
   const dsTot=(deltaTotal>=0?'+':'')+deltaTotal.toFixed(0)+'%';
+  const confTxt=meses.length<3?'Baixa':meses.length<5?'Média':'Alta';
   if(novasCores.length===0){
-    // No new colors — simple growth verdict
-    if(deltaTotal>=10)return`<span style="color:#4ade80">🚀 Cresceu ${dsTot}</span>`;
-    if(deltaTotal<=-10)return`<span style="color:#f87171">🔻 Caiu ${dsTot}</span>`;
-    return`<span style="color:var(--text-muted)">≈ Estável ${dsTot}</span>`;
+    // No new colors — stability / mix-shift / canibalization diagnostic
+    const {redistribution,gainer,loser}=_redistribIndex(m,meses);
+    const canibPct=(redistribution*100).toFixed(0);
+    const canibBand=redistribution<0.15?'Baixa':redistribution<=0.35?'Moderada':'Alta';
+    // Status badge
+    let badge;
+    if(deltaTotal>=10) badge=`<span style="color:#4ade80">🟢 MODELO EM CRESCIMENTO</span>`;
+    else if(deltaTotal<=-10) badge=`<span style="color:#f87171">🔴 MODELO EM QUEDA</span>`;
+    else badge=`<span style="color:#4ade80">🟢 MODELO ESTÁVEL</span>`;
+    // Mix health
+    const mix=redistribution<0.15?'Saudável':redistribution<=0.35?'Em transição':'Alta rotação';
+    // Canibalization classification + executive summary
+    const gLbl=gainer?_colorLabel(gainer.desc,prefix):'', lLbl=loser?_colorLabel(loser.desc,prefix):'';
+    let canibLine,resumo;
+    if(redistribution<0.15){
+      canibLine=`<span style="color:#4ade80">🟢 Sem evidência de canibalização</span>`;
+      const estado=deltaTotal>=10?'em crescimento':deltaTotal<=-10?'em queda':'estável';
+      resumo=`Modelo ${estado}. As cores mantiveram participação semelhante, sem evidência relevante de canibalização.`;
+    }else if(redistribution<=0.35){
+      canibLine=`<span style="color:#fbbf24">🟡 Mudança de mix entre cores</span>`;
+      resumo=gainer&&loser?`Foi identificada mudança de mix. ${gLbl} ganhou participação enquanto ${lLbl} perdeu volume.`:`Houve redistribuição de participação entre as cores do modelo.`;
+    }else{
+      canibLine=`<span style="color:#f87171">🔴 Possível canibalização detectada</span>`;
+      resumo=gainer&&loser?`Possível canibalização. O ganho de ${gLbl} ocorreu acompanhado da redução de ${lLbl}.`:`Possível canibalização: forte redistribuição entre as cores.`;
+    }
+    const l1=`<span style="font-size:.9rem;">${badge}</span>`;
+    const l2=`<span style="display:block;font-size:.8rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;">Variação: ${dsTot} | Mix: ${mix} | Canib: ${canibPct}% (${canibBand})</span>`;
+    const l3=`<span style="display:block;font-size:.78rem;font-weight:400;margin-top:.1rem;">${canibLine} <span style="color:var(--text-muted)">| Confiança: ${confTxt}</span></span>`;
+    const l4=`<span style="display:block;font-size:.73rem;font-weight:400;color:var(--text-muted);margin-top:.25rem;max-width:420px;white-space:normal;line-height:1.35;">${resumo}</span>`;
+    return l1+l2+l3+l4;
   }
   // Entry point: earliest month any new color appeared
   const entryIdx=Math.min(...novasCores.map(c=>c.firstIdx));
@@ -3949,12 +3996,24 @@ function renderModelosTab(){
   const colTotal=c=>meses.reduce((s,x)=>s+(c.porMes[x]||0),0);
   const cores=[...cur.cores.values()].sort((a,b)=>colTotal(b)-colTotal(a));
   const cell=v=>v?fmtBRL(v):'<span style="color:var(--text-muted)">—</span>';
-  let html='<table class="mov-table"><thead><tr><th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th></tr></thead><tbody>';
+  // Tendência: média da 2ª metade vs 1ª metade da série da cor
+  const trend=c=>{
+    const half=Math.max(1,Math.floor(meses.length/2));
+    const pre=meses.slice(0,half).reduce((s,x)=>s+(c.porMes[x]||0),0)/half;
+    const posM=meses.slice(half);
+    const pos=posM.length?posM.reduce((s,x)=>s+(c.porMes[x]||0),0)/posM.length:0;
+    if(pre===0&&pos>0)return'<span title="Crescendo" style="color:#4ade80">↑</span>';
+    const d=pre>0?(pos-pre)/pre:0;
+    if(d>0.1)return'<span title="Crescendo" style="color:#4ade80">↑</span>';
+    if(d<-0.1)return'<span title="Caindo" style="color:#f87171">↓</span>';
+    return'<span title="Estável" style="color:var(--text-muted)">→</span>';
+  };
+  let html='<table class="mov-table"><thead><tr><th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th><th style="text-align:center">Tend.</th></tr></thead><tbody>';
   for(const c of cores){
     const cl=_colorLabel(c.desc,prefix);
-    html+=`<tr><td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td></tr>`;
+    html+=`<tr><td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td><td style="text-align:center;font-weight:700;">${trend(c)}</td></tr>`;
   }
-  html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td></tr>`;
+  html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td><td></td></tr>`;
   html+='</tbody></table>';
   content.innerHTML=html;
   if(verdEl)verdEl.innerHTML=_modVerdict(cur,meses);
