@@ -2071,6 +2071,54 @@ function aplicarFlagsFixos(rows){
   for(const r of rows){const f=FLAGS_FIXOS.get(normCod(r[COL.COD]));if(f)r[COL.FLAG]=f;}
 }
 
+// ====================================================================
+// FOTOS — aba opcional "FOTOS"/"IMAGEM": Código -> URL da imagem.
+// Aceita link direto (.jpg/.png) e link normal do Google Drive (converte
+// automaticamente para o formato de imagem). Código com ou sem pontos.
+// ====================================================================
+let FOTOS_MAP=new Map(); // codNormalizado -> URL pronta para <img>
+function ehAbaDeFotos(name){return /foto|imagem|image|photo/i.test(String(name||''));}
+function normalizarUrlFoto(u){
+  u=String(u==null?'':u).trim();
+  if(!u)return '';
+  // Google Drive: extrai o ID de vários formatos e gera link de thumbnail
+  let id='';
+  let m=u.match(/\/file\/d\/([A-Za-z0-9_-]{20,})/)||u.match(/[?&]id=([A-Za-z0-9_-]{20,})/)||u.match(/\/d\/([A-Za-z0-9_-]{20,})/);
+  if(m)id=m[1];
+  if(id)return `https://drive.google.com/thumbnail?id=${id}&sz=w600`;
+  return u; // já é link direto
+}
+function lerFotos(wb){
+  const map=new Map();
+  for(const sheetName of wb.SheetNames){
+    if(!ehAbaDeFotos(sheetName))continue;
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,raw:true,defval:null,blankrows:false});
+    if(!aoa.length)continue;
+    let codIdx=-1,urlIdx=-1,headerIdx=-1;
+    for(let i=0;i<Math.min(aoa.length,10);i++){
+      const row=aoa[i]||[];
+      const c=row.findIndex(x=>/cod|código|code/i.test(String(x==null?'':x)));
+      if(c>=0){codIdx=c;urlIdx=row.findIndex(x=>/url|foto|imagem|image|link|photo/i.test(String(x==null?'':x)));headerIdx=i;break;}
+    }
+    if(codIdx<0){codIdx=0;urlIdx=1;headerIdx=-1;} // sem cabeçalho: col1=código, col2=url
+    if(urlIdx<0)urlIdx=codIdx+1;
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const row=aoa[i]||[];
+      const cod=normCod(row[codIdx]);
+      if(!cod||/^(COD|CODIGO|CÓDIGO|CODE|TOTAL)$/i.test(cod))continue;
+      const url=normalizarUrlFoto(row[urlIdx]);
+      if(url)map.set(cod,url);
+    }
+  }
+  return map;
+}
+// Busca a foto do produto: tenta o código completo (9 díg.) e cai para o modelo (6 díg.)
+function fotoDoCodigo(cod){
+  const c=normCod(cod);
+  if(!c)return '';
+  return FOTOS_MAP.get(c)||FOTOS_MAP.get(c.slice(0,6))||FOTOS_MAP.get(c.slice(0,3))||'';
+}
+
 async function carregarDoSheets(spreadsheetId){
   const progEl=document.getElementById('gs-status-text');
   if(progEl)progEl.textContent='Baixando planilha...';
@@ -2089,9 +2137,10 @@ async function carregarDoSheets(spreadsheetId){
   try{wb=XLSX.read(buf,{type:'array',cellFormula:false,cellNF:false,cellText:false});}
   catch(e){throw new Error('Não consegui ler a planilha. Confirme que o link é de uma planilha Google válida.');}
   FLAGS_FIXOS=lerFlagsFixos(wb);
+  FOTOS_MAP=lerFotos(wb);
   PERIODOS=[];
   for(const sheetName of wb.SheetNames){
-    if(ehAbaDeFlags(sheetName))continue;
+    if(ehAbaDeFlags(sheetName)||ehAbaDeFotos(sheetName))continue;
     const ws=wb.Sheets[sheetName];
     if(!ws)continue;
     const rows=parseWorksheetToData(ws);
@@ -4152,12 +4201,21 @@ function renderModelosTab(){
     if(d<-0.1)return'<span title="Caindo" style="color:#f87171">↓</span>';
     return'<span title="Estável" style="color:var(--text-muted)">→</span>';
   };
-  let html='<table class="mov-table"><thead><tr><th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th><th style="text-align:center">Tend.</th></tr></thead><tbody>';
+  // Miniatura da foto (quando houver na aba FOTOS); cai do código da cor para o do modelo
+  const temFotos=FOTOS_MAP&&FOTOS_MAP.size>0;
+  const thumb=c=>{
+    const u=fotoDoCodigo(c.cod);
+    return u?`<a href="${u}" target="_blank" rel="noopener" title="Ampliar"><img src="${u}" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:5px;border:1px solid var(--border,#334155);display:block;margin:auto;" onerror="this.parentNode.innerHTML='—'"></a>`:'<span style="color:var(--text-muted);font-size:.7rem;">—</span>';
+  };
+  const fotoTh=temFotos?'<th style="text-align:center">Foto</th>':'';
+  const fotoTotalTd=temFotos?'<td></td>':'';
+  let html='<table class="mov-table"><thead><tr>'+fotoTh+'<th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th><th style="text-align:center">Tend.</th></tr></thead><tbody>';
   for(const c of cores){
     const cl=_colorLabel(c.desc,prefix);
-    html+=`<tr><td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td><td style="text-align:center;font-weight:700;">${trend(c)}</td></tr>`;
+    const fotoTd=temFotos?`<td style="text-align:center">${thumb(c)}</td>`:'';
+    html+=`<tr>${fotoTd}<td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td><td style="text-align:center;font-weight:700;">${trend(c)}</td></tr>`;
   }
-  html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td><td></td></tr>`;
+  html+=`<tr style="border-top:2px solid var(--accent);">${fotoTotalTd}<td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td><td></td></tr>`;
   html+='</tbody></table>';
   content.innerHTML=html;
   // Contexto de negócio: classe ABC do modelo (Pareto sobre o portfólio) e participação
