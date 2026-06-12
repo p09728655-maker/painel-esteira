@@ -1847,14 +1847,25 @@ function progMascaraDataBR(el){
   el.value=v;
 }
 function progDataBRChange(el){
-  const m=el.value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  // aceita d/m/aaaa e dd/mm/aaaa; retorna true se a data é válida e sincronizada
+  const m=el.value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   const hidden=document.getElementById('prog-input-data');
-  if(!m){el.style.borderColor='var(--red)';return;}
-  const[,d,mo,y]=m;
+  if(!m){el.style.borderColor='var(--red)';return false;}
+  const d=String(+m[1]).padStart(2,'0'),mo=String(+m[2]).padStart(2,'0'),y=m[3];
   const dt=new Date(+y,+mo-1,+d);
-  if(dt.getDate()!=+d||dt.getMonth()!=+mo-1){el.style.borderColor='var(--red)';return;}
+  if(dt.getDate()!=+d||dt.getMonth()!=+mo-1){el.style.borderColor='var(--red)';return false;}
   el.style.borderColor='';
+  el.value=`${d}/${mo}/${y}`;
   hidden.value=`${y}-${mo}-${d}`;
+  return true;
+}
+// Sincroniza o campo BR -> ISO antes de carregar/salvar (cobre digitação sem blur, colagem etc.)
+function progGarantirData(){
+  const br=document.getElementById('prog-input-data-br');
+  if(br&&br.value.trim()!==''){
+    if(!progDataBRChange(br)){progToast('Data inválida — use dd/mm/aaaa.','err');return null;}
+  }
+  return document.getElementById('prog-input-data').value||null;
 }
 function progSyncDataBR(){
   const iso=document.getElementById('prog-input-data').value;
@@ -2246,7 +2257,7 @@ function progRenderTimeline(){
 }
 async function progSalvarProgramacao(){
   if(progItens.length===0)return progToast('Adicione pelo menos um produto.','err');
-  const dataISO=document.getElementById('prog-input-data').value;
+  const dataISO=progGarantirData();
   if(!dataISO)return progToast('Selecione a data.','err');
   if(progSimulacaoAtiva()&&!confirm('Há uma SIMULAÇÃO ativa: a programação será salva com os valores simulados de velocidade/entre peças.\n\nOK = salvar assim mesmo\nCancelar = voltar (use o botão ↺ Reset para restaurar os valores originais antes de salvar)'))return;
   const btn=document.getElementById('prog-btn-salvar');
@@ -2257,7 +2268,7 @@ async function progSalvarProgramacao(){
   finally{btn.textContent='Salvar no Sheets';btn.disabled=false;}
 }
 async function progCarregarProgramacao(){
-  const dataISO=document.getElementById('prog-input-data').value;
+  const dataISO=progGarantirData();
   if(!dataISO)return progToast('Selecione a data.','err');
   const status=document.getElementById('prog-status-carga');
   status.textContent='Carregando...';
