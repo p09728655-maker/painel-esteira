@@ -2367,11 +2367,16 @@ async function progCarregarSemana(){
         return 0;
       });
       const tempo=tempos.reduce((s,v)=>s+v,0);
-      // fim previsto: usa o salvo; se faltar, projeta a sequência a partir das 07:00 (com almoço)
+      // fim previsto: usa o salvo (já inclui as trocas configuradas no dia);
+      // se faltar, projeta a partir das 07:00 com almoço + troca padrão da barra entre produtos
       let fim=itens.reduce((m,t)=>(t.hora_fim||'')>m?t.hora_fim:m,'');
       if(!fim&&tempo>0){
+        const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
         let cur=parseHHMM(TURNO_INICIO);
-        tempos.forEach(tm=>{cur=progAddMinComAlmoco(cur,tm);});
+        tempos.forEach((tm,j)=>{
+          if(j>0&&trocaPadrao>0)cur=progAddMinComAlmoco(cur,trocaPadrao);
+          cur=progAddMinComAlmoco(cur,tm);
+        });
         fim='~'+minToHHMM(cur);estimado=true;
       }
       // horas extras necessárias = quanto o fim previsto passa do fim do turno (16:45)
