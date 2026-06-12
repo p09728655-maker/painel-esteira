@@ -536,9 +536,9 @@ td.td-actions { width: 80px; text-align: right; }
 <div id="app-header">
   <span class="app-brand">ritmoprod<span>.</span></span>
   <nav class="app-tabs">
-    <button class="app-tab active" onclick="switchTab('operador')">Operador</button>
+    <button class="app-tab" onclick="switchTab('operador')">Operador</button>
     <button class="app-tab" onclick="switchTab('tv')">TV</button>
-    <button class="app-tab" onclick="switchTab('programacao')">Programação</button>
+    <button class="app-tab active" onclick="switchTab('programacao')">Programação</button>
     <button class="app-tab" onclick="switchTab('simulacoes')">Simulações</button>
   </nav>
   <div class="app-right">
@@ -554,7 +554,7 @@ td.td-actions { width: 80px; text-align: right; }
 <div id="app-body">
 
 <!-- ══════════════ TAB: OPERADOR ══════════════ -->
-<div id="tab-operador" class="tab-panel active">
+<div id="tab-operador" class="tab-panel">
   <div id="op-wrapper">
 
     <div id="offline-banner" class="hidden">⚠ Modo offline — dados salvos localmente</div>
@@ -789,7 +789,7 @@ td.td-actions { width: 80px; text-align: right; }
 </div><!-- /tab-tv -->
 
 <!-- ══════════════ TAB: PROGRAMAÇÃO ══════════════ -->
-<div id="tab-programacao" class="tab-panel">
+<div id="tab-programacao" class="tab-panel active">
 
   <!-- Print-only header -->
   <div id="prog-print-header" style="display:none;font-family:'Inter',sans-serif;padding:0 0 10px 0">
@@ -864,11 +864,11 @@ td.td-actions { width: 80px; text-align: right; }
           </div>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);margin-left:8px;padding-left:8px;border-left:1px solid var(--border)">
             <span>Vel:</span>
-            <input type="number" id="prog-vel-sim" min="0" step="1" placeholder="—"
+            <input type="number" id="prog-vel-sim" min="0" step="0.1" placeholder="—"
               style="width:56px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--txt);text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
               title="Velocidade da esteira (m/min) — deixe vazio para usar o padrão de cada produto">
             <span>m/min</span>
-            <span style="margin-left:4px">Ep:</span>
+            <span style="margin-left:4px">Entre Pç:</span>
             <input type="number" id="prog-ep-sim" min="0" step="0.1" placeholder="—"
               style="width:52px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--txt);text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
               title="Entre peças (mm) — deixe vazio para usar o padrão de cada produto">
@@ -1134,7 +1134,7 @@ function getCorPct(pct, idle) {
 // ═══════════════════════════════════════════════════════════════
 // TAB SWITCHING
 // ═══════════════════════════════════════════════════════════════
-let currentTab = 'operador';
+let currentTab = 'programacao';
 
 function switchTab(name) {
   // Stop scan if leaving operator/ean tab
@@ -2005,10 +2005,12 @@ async function progCarregarProgramacao(){
     if(!data||data.length===0){status.textContent='Nenhuma programação salva para esta data.';return;}
     if(progCacheProdutos.length===0){try{const lista=await progApiFetch(`${getAppsScriptURL()}?acao=produtos`);if(lista)progCacheProdutos=lista;}catch(e){}}
     progItens=data.map(item=>{
-      const vel=item.vel||0,med=item.medida||0,ep=item.entre_pecas||0;
+      const prod=progCacheProdutos.find(p=>p.codigo===item.codigo);
+      const vel=parseFloat(item.vel)||(prod?parseFloat(prod.vel)||0:0);
+      const med=parseFloat(item.medida)||(prod?parseFloat(prod.medida)||0:0);
+      const ep=(item.entre_pecas!=null&&item.entre_pecas!=='')?parseFloat(item.entre_pecas)||0:(prod?parseFloat(prod.entre_pecas)||0:0);
       const cxMin=(vel>0&&(med+ep)>0)?calcCxMinRaw(vel,med,ep)*(1-progGetFadiga()):0;
       const cxH=Math.round(cxMin*60),tmpMin=cxMin>0?parseFloat((item.qtd_cx/cxMin).toFixed(1)):0;
-      const prod=progCacheProdutos.find(p=>p.codigo===item.codigo);
       const pb=parseFloat(item.pb)||(prod?parseFloat(prod.pb)||0:0);
       const pontos=parseFloat(item.pontos)||(prod?parseFloat(prod.pontos)||0:0);
       return{codigo:item.codigo,descricao:item.descricao,qtd_cx:item.qtd_cx,vel,medida:med,entre_pecas:ep,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:cxH,tempo_min:tmpMin,hora_inicio:'',hora_fim:'',pb,pontos,troca_min:0};
