@@ -888,8 +888,8 @@ td.td-actions { width: 80px; text-align: right; }
             <th style="width:36px">#</th>
             <th style="width:400px">Produto</th>
             <th>Código</th>
-            <th style="text-align:right">Vel</th>
-            <th style="text-align:right">Entre Pç</th>
+            <th style="text-align:right">Vel (m/min)</th>
+            <th style="text-align:right">Entre Pç (mm)</th>
             <th style="text-align:right">Qtd (cx)</th>
             <th style="text-align:right">CX/H</th>
             <th style="text-align:right">Tempo</th>
@@ -1913,8 +1913,8 @@ function progRenderTabela(){
       <td class="td-ordem">${idx+1}</td>
       <td class="td-produto">${item.descricao}</td>
       <td class="td-codigo">${item.codigo}</td>
-      <td class="td-num">${item.vel>0?fmtNum(item.vel,1)+' m/min':'—'}</td>
-      <td class="td-num">${item.entre_pecas>0?fmtNum(item.entre_pecas,0)+' mm':'—'}</td>
+      <td class="td-num">${item.vel>0?fmtNum(item.vel,1):'—'}</td>
+      <td class="td-num">${item.entre_pecas>0?fmtNum(item.entre_pecas,0):'—'}</td>
       <td class="td-num">${item.qtd_cx.toLocaleString('pt-BR')}</td>
       <td class="td-num">${item.cx_h}</td>
       <td class="td-num">${fmtTempoHM(item.tempo_min)}</td>
