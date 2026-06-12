@@ -402,7 +402,8 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 .tabela-prog td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
 .tabela-prog tr:last-child td { border-bottom: none; }
 .tabela-prog tr:hover td { background: rgba(255,255,255,0.02); }
-.prog-cell-input { width:56px; background:transparent; border:1px solid #444; border-radius:4px; color:var(--txt); text-align:right; padding:2px 4px; font-size:12px; font-family:'JetBrains Mono',monospace; }
+.prog-cell-input { width:76px; box-sizing:border-box; background:transparent; border:1px solid #444; border-radius:4px; color:var(--txt); text-align:right; padding:2px 18px 2px 4px; font-size:12px; font-family:'JetBrains Mono',monospace; }
+.prog-cell-input::-webkit-inner-spin-button { margin-left:4px; }
 .prog-cell-input:focus { border-color:var(--accent); outline:none; }
 .prog-cell-input.mod { border-color:var(--accent); color:var(--accent); font-weight:700; }
 td.td-ordem { color: var(--txt2); font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 36px; }
@@ -2159,13 +2160,13 @@ function progRenderTabela(){
       <td class="td-ordem">${idx+1}</td>
       <td class="td-produto">${esc(item.descricao)}</td>
       <td class="td-codigo">${esc(item.codigo)}</td>
-      <td class="td-num"><input type="number" min="0" step="0.1" value="${item.vel||0}" class="prog-cell-input${velMod?' mod':''}"
-          title="${velMod?`Original: ${fmtNum(item.velBase,1)} m/min`:'Velocidade deste produto (edite para simular)'}"
+      <td class="td-num"><input type="number" min="0" step="0.01" value="${(item.vel||0).toFixed(2)}" class="prog-cell-input${velMod?' mod':''}"
+          title="${velMod?`Original: ${fmtNum(item.velBase,2)} m/min`:'Velocidade deste produto (edite para simular)'}"
           onchange="progEditItem(${idx},'vel',this.value)"></td>
       <td class="td-num"><input type="number" min="0" step="1" value="${item.entre_pecas||0}" class="prog-cell-input${epMod?' mod':''}"
           title="${epMod?`Original: ${fmtNum(item.epBase,0)} mm`:'Entre peças deste produto (edite para simular)'}"
           onchange="progEditItem(${idx},'entre_pecas',this.value)"></td>
-      <td class="td-num"><input type="number" min="1" step="1" value="${item.qtd_cx}" class="prog-cell-input" style="width:64px"
+      <td class="td-num"><input type="number" min="1" step="1" value="${item.qtd_cx}" class="prog-cell-input" style="width:84px"
           title="Quantidade de caixas"
           onchange="progEditItem(${idx},'qtd_cx',this.value)"></td>
       <td class="td-num">${item.cx_h}</td>
