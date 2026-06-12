@@ -402,6 +402,9 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 .tabela-prog td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
 .tabela-prog tr:last-child td { border-bottom: none; }
 .tabela-prog tr:hover td { background: rgba(255,255,255,0.02); }
+.prog-cell-input { width:56px; background:transparent; border:1px solid #444; border-radius:4px; color:var(--txt); text-align:right; padding:2px 4px; font-size:12px; font-family:'JetBrains Mono',monospace; }
+.prog-cell-input:focus { border-color:var(--accent); outline:none; }
+.prog-cell-input.mod { border-color:var(--accent); color:var(--accent); font-weight:700; }
 td.td-ordem { color: var(--txt2); font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 36px; }
 td.td-produto { font-weight: 600; white-space: nowrap; text-align: left; }
 td.td-codigo { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--txt2); }
@@ -815,9 +818,25 @@ td.td-actions { width: 80px; text-align: right; }
             style="position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0"
             onchange="progSyncDataBR()">
         </span>
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2)">
+          Início:
+          <input type="text" id="prog-inicio" value="07:00" maxlength="5" inputmode="numeric"
+            title="Hora de início do estudo (padrão 07:00)"
+            style="width:62px;text-align:center;font-family:'JetBrains Mono',monospace"
+            onchange="progInicioChange(this)">
+        </span>
         <button class="btn btn-outline" onclick="progCarregarProgramacao()">Carregar</button>
         <span id="prog-status-carga" style="font-size:13px;color:var(--txt2)"></span>
-        <button class="btn btn-ok" onclick="progSalvarProgramacao()" id="prog-btn-salvar" style="margin-left:auto">Salvar no Sheets</button>
+        <span style="display:inline-flex;align-items:center;gap:5px;margin-left:auto">
+          <select id="prog-cenario" onchange="progCarregarCenario(this.value)"
+            title="Carregar um cenário salvo neste navegador"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:8px;font-size:13px;max-width:160px">
+            <option value="">Cenários…</option>
+          </select>
+          <button class="btn btn-outline" onclick="progSalvarCenario()" title="Salvar o estudo atual como cenário (neste navegador)">💾 Cenário</button>
+          <button class="btn btn-outline" onclick="progExcluirCenario()" title="Excluir o cenário selecionado">🗑</button>
+        </span>
+        <button class="btn btn-ok" onclick="progSalvarProgramacao()" id="prog-btn-salvar">Salvar no Sheets</button>
       </div>
     </div>
 
@@ -898,6 +917,7 @@ td.td-actions { width: 80px; text-align: right; }
           <button class="btn btn-outline btn-sm" onclick="window.print()" style="border-color:var(--txt2);color:var(--txt2)">🖨 Imprimir</button>
         </div>
       </div>
+      <div id="prog-sim-delta" style="display:none;margin:0 0 12px;padding:7px 12px;border:1px dashed var(--border);border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px"></div>
       <table class="tabela-prog">
         <thead>
           <tr>
@@ -1874,7 +1894,7 @@ function progAddMinComAlmoco(startMin,durMin){
   return cur;
 }
 function progRecalcularHorarios(){
-  let curMin=parseHHMM(TURNO_INICIO);
+  let curMin=parseHHMM(progGetInicio());
   const almIni2=parseHHMM(ALMOCO_INI),almFim2=parseHHMM(ALMOCO_FIM);
   progItens.forEach((item,idx)=>{
     if(idx>0&&item.troca_min>0)curMin=progAddMinComAlmoco(curMin,item.troca_min);
@@ -1993,6 +2013,106 @@ function progSimularTodos(silent){
   if(epOvr!==null)msgs.push(`ep ${epOvr} mm`);
   progToast(msgs.length?`Simulação aplicada: ${msgs.join(', ')}.`:'Usando valores padrão de cada produto.','ok');
 }
+// Edição inline de Vel / Entre Pç / Qtd na própria linha da tabela
+function progEditItem(idx,campo,val){
+  const item=progItens[idx];if(!item)return;
+  const v=parseFloat(String(val).replace(',','.'));
+  if(campo==='qtd_cx'){
+    if(!(v>=1)){progRenderTabela();return;}
+    item.qtd_cx=Math.round(v);
+  }else if(campo==='vel'){
+    if(!(v>0)){progRenderTabela();return;}
+    if(item.velBase===undefined)item.velBase=item.vel;
+    item.vel=v;
+    if(item.vel===item.velBase)delete item.velBase;
+  }else if(campo==='entre_pecas'){
+    if(!(v>=0)){progRenderTabela();return;}
+    if(item.epBase===undefined)item.epBase=item.entre_pecas;
+    item.entre_pecas=v;
+    if(item.entre_pecas===item.epBase)delete item.epBase;
+  }
+  progRecalcItem(item,progGetFadiga());
+  progRecalcularHorarios();progRenderTabela();progRenderResumo();
+}
+// Hora de início do estudo (padrão TURNO_INICIO)
+function progGetInicio(){
+  const el=document.getElementById('prog-inicio');
+  const m=el&&el.value.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m)return TURNO_INICIO;
+  return`${String(Math.min(23,+m[1])).padStart(2,'0')}:${String(Math.min(59,+m[2])).padStart(2,'0')}`;
+}
+function progInicioChange(el){
+  const m=el.value.match(/^(\d{1,2}):?(\d{2})$/);
+  if(!m){el.value=TURNO_INICIO;progToast('Hora inválida — usando 07:00.','err');}
+  else el.value=`${String(Math.min(23,+m[1])).padStart(2,'0')}:${String(Math.min(59,+m[2])).padStart(2,'0')}`;
+  progRecalcularHorarios();progRenderTabela();progRenderResumo();
+}
+// Delta da simulação: compara o cronograma atual com o de valores originais
+function progCalcFimTotal(itens){
+  let curMin=parseHHMM(progGetInicio());
+  const almIni2=parseHHMM(ALMOCO_INI),almFim2=parseHHMM(ALMOCO_FIM);
+  let total=0;
+  itens.forEach((item,idx)=>{
+    if(idx>0&&item.troca_min>0)curMin=progAddMinComAlmoco(curMin,item.troca_min);
+    if(curMin>=almIni2&&curMin<almFim2)curMin=almFim2;
+    curMin=progAddMinComAlmoco(curMin,item.tempo_min);
+    total+=item.tempo_min;
+  });
+  return{fimMin:curMin,totalMin:total};
+}
+function progRenderDelta(){
+  const el=document.getElementById('prog-sim-delta');
+  if(!el)return;
+  if(!progSimulacaoAtiva()||progItens.length===0){el.style.display='none';return;}
+  const fad=progGetFadiga();
+  const base=progItens.map(i=>{
+    const c={...i,vel:i.velBase!==undefined?i.velBase:i.vel,entre_pecas:i.epBase!==undefined?i.epBase:i.entre_pecas};
+    progRecalcItem(c,fad);return c;
+  });
+  const b=progCalcFimTotal(base),s=progCalcFimTotal(progItens);
+  const delta=Math.round(b.fimMin-s.fimMin);
+  const txt=delta>0?`ganho de ${fmtTempoHM(delta)}`:delta<0?`perda de ${fmtTempoHM(-delta)}`:'sem alteração no fim';
+  el.style.display='block';
+  const cor=delta>0?'var(--ok)':delta<0?'var(--warn)':'var(--txt2)';
+  el.style.borderColor=cor;el.style.color=cor;
+  el.textContent=`⚖ Simulação — Original: fim ${minToHHMM(b.fimMin)} (${fmtTempoHM(b.totalMin)} prod) → Simulado: fim ${minToHHMM(s.fimMin)} (${fmtTempoHM(s.totalMin)} prod) · ${txt}`;
+}
+// Cenários nomeados (salvos no navegador)
+function progCenarios(){try{return JSON.parse(localStorage.getItem('prog_cenarios')||'[]');}catch(e){return[];}}
+function progRefreshCenarios(sel){
+  const el=document.getElementById('prog-cenario');
+  if(!el)return;
+  el.innerHTML='<option value="">Cenários…</option>'+progCenarios().map(c=>`<option value="${esc(c.nome)}"${c.nome===sel?' selected':''}>${esc(c.nome)}</option>`).join('');
+}
+function progSalvarCenario(){
+  if(progItens.length===0)return progToast('Adicione produtos antes de salvar um cenário.','err');
+  const atual=document.getElementById('prog-cenario').value;
+  const nome=(prompt('Nome do cenário:',atual||'Cenário A')||'').trim();
+  if(!nome)return;
+  const lista=progCenarios().filter(c=>c.nome!==nome);
+  lista.push({nome,salvoEm:new Date().toISOString(),inicio:progGetInicio(),fadiga:parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0,itens:JSON.parse(JSON.stringify(progItens))});
+  localStorage.setItem('prog_cenarios',JSON.stringify(lista));
+  progRefreshCenarios(nome);
+  progToast(`Cenário "${nome}" salvo neste navegador.`,'ok');
+}
+function progCarregarCenario(nome){
+  if(!nome)return;
+  const c=progCenarios().find(x=>x.nome===nome);
+  if(!c)return;
+  progItens=JSON.parse(JSON.stringify(c.itens));
+  if(c.inicio)document.getElementById('prog-inicio').value=c.inicio;
+  if(c.fadiga!=null){localStorage.setItem('esteira_fadiga_pct',c.fadiga);opState.fatorFadiga=c.fadiga/100;}
+  progRecalcularHorarios();progRenderTabela();progRenderResumo();
+  progToast(`Cenário "${nome}" carregado.`,'ok');
+}
+function progExcluirCenario(){
+  const nome=document.getElementById('prog-cenario').value;
+  if(!nome)return progToast('Selecione um cenário para excluir.','err');
+  if(!confirm(`Excluir o cenário "${nome}"?`))return;
+  localStorage.setItem('prog_cenarios',JSON.stringify(progCenarios().filter(c=>c.nome!==nome)));
+  progRefreshCenarios('');
+  progToast(`Cenário "${nome}" excluído.`,'ok');
+}
 function progSimulacaoAtiva(){return progItens.some(i=>i.velBase!==undefined||i.epBase!==undefined);}
 function progAtualizarBotaoReset(){
   const btn=document.getElementById('prog-btn-reset');
@@ -2030,6 +2150,8 @@ function progRenderTabela(){
     const tr=document.createElement('tr');
     const kgItem=item.pb>0?(item.qtd_cx*item.pb).toFixed(0)+' kg':'—';
     const ptItem=item.pontos>0?fmtNum(item.qtd_cx*item.pontos,0)+' pt':'—';
+    const velMod=item.velBase!==undefined&&item.vel!==item.velBase;
+    const epMod=item.epBase!==undefined&&item.entre_pecas!==item.epBase;
     const trocaInput=idx===0
       ?`<input type="number" value="0" disabled style="width:44px;background:transparent;border:1px solid #333;border-radius:4px;color:var(--txt2);text-align:right;padding:2px 4px;font-size:12px" title="Primeiro produto não tem troca">`
       :`<input type="number" min="0" step="1" value="${item.troca_min||0}" style="width:44px;background:transparent;border:1px solid #444;border-radius:4px;color:var(--txt);text-align:right;padding:2px 4px;font-size:12px" onchange="progItens[${idx}].troca_min=Math.max(0,parseInt(this.value)||0);progRecalcularHorarios();progRenderTabela();progRenderResumo()">`;
@@ -2037,9 +2159,15 @@ function progRenderTabela(){
       <td class="td-ordem">${idx+1}</td>
       <td class="td-produto">${esc(item.descricao)}</td>
       <td class="td-codigo">${esc(item.codigo)}</td>
-      <td class="td-num">${item.vel>0?fmtNum(item.vel,1):'—'}</td>
-      <td class="td-num">${item.entre_pecas>0?fmtNum(item.entre_pecas,0):'—'}</td>
-      <td class="td-num">${item.qtd_cx.toLocaleString('pt-BR')}</td>
+      <td class="td-num"><input type="number" min="0" step="0.1" value="${item.vel||0}" class="prog-cell-input${velMod?' mod':''}"
+          title="${velMod?`Original: ${fmtNum(item.velBase,1)} m/min`:'Velocidade deste produto (edite para simular)'}"
+          onchange="progEditItem(${idx},'vel',this.value)"></td>
+      <td class="td-num"><input type="number" min="0" step="1" value="${item.entre_pecas||0}" class="prog-cell-input${epMod?' mod':''}"
+          title="${epMod?`Original: ${fmtNum(item.epBase,0)} mm`:'Entre peças deste produto (edite para simular)'}"
+          onchange="progEditItem(${idx},'entre_pecas',this.value)"></td>
+      <td class="td-num"><input type="number" min="1" step="1" value="${item.qtd_cx}" class="prog-cell-input" style="width:64px"
+          title="Quantidade de caixas"
+          onchange="progEditItem(${idx},'qtd_cx',this.value)"></td>
       <td class="td-num">${item.cx_h}</td>
       <td class="td-num">${fmtTempoHM(item.tempo_min)}</td>
       <td class="td-num">${trocaInput}</td>
@@ -2062,7 +2190,7 @@ function progRenderTabela(){
 }
 function progRenderResumo(){
   const card=document.getElementById('prog-card-resumo');
-  if(progItens.length===0){card.style.display='none';return;}
+  if(progItens.length===0){card.style.display='none';progRenderDelta();return;}
   card.style.display='block';
   const totalCx=progItens.reduce((s,i)=>s+i.qtd_cx,0);
   const totalMin=progItens.reduce((s,i)=>s+i.tempo_min,0);
@@ -2084,11 +2212,12 @@ function progRenderResumo(){
   const totalGeral=totalMin+totalTroca;
   document.getElementById('prog-res-tempo-geral').textContent=fmtTempoHM(totalGeral);
   document.getElementById('prog-res-tempo-geral-min').textContent=`${Math.round(totalMin)}min prod + ${totalTroca}min troca`;
-  document.getElementById('prog-res-inicio').textContent=TURNO_INICIO;
+  document.getElementById('prog-res-inicio').textContent=progGetInicio();
   document.getElementById('prog-res-fim').textContent=fimReal;
   const obs=document.getElementById('prog-res-obs');
   if(fimMin2>turnoFim2){const extra=fimMin2-turnoFim2;obs.textContent=`⚠ ${fmtTempoHM(extra)} além do turno`;obs.style.color='var(--warn)';document.getElementById('prog-res-fim').style.color='var(--warn)';}
   else{const folga=turnoFim2-fimMin2;obs.textContent=`✓ ${fmtTempoHM(folga)} de folga no turno`;obs.style.color='var(--ok)';document.getElementById('prog-res-fim').style.color='var(--accent)';}
+  progRenderDelta();
   progRenderTimeline();
 }
 function progRenderTimeline(){
@@ -2240,6 +2369,7 @@ function calcSim4(){
   document.getElementById('prog-input-data').value=hojeISO();
   progSyncDataBR();
   document.getElementById('prog-fadiga').value=parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0;
+  progRefreshCenarios('');
 
   // TV
   tvFetchAndRender();
