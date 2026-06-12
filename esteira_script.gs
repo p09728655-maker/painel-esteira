@@ -65,7 +65,12 @@ function doGet(e) {
 // ── doPost ───────────────────────────────────────────────────────────────────
 
 function doPost(e) {
+  var lock = LockService.getScriptLock();
   try {
+    // Evita corrida entre gravações concorrentes (ex.: dois usuários salvando
+    // a programação ao mesmo tempo — delete+insert poderia duplicar/perder linhas)
+    lock.waitLock(20000);
+
     var acao = (e.parameter.acao || "").trim();
     var body = {};
 
@@ -91,6 +96,8 @@ function doPost(e) {
     return err("acao invalida: " + acao);
   } catch (ex) {
     return err(ex.message);
+  } finally {
+    try { lock.releaseLock(); } catch (ignored) {}
   }
 }
 
@@ -435,5 +442,6 @@ function parseDataBR(str) {
       return new Date(y, m, d);
     }
   }
-  return new Date();
+  // Antes devolvia a data de hoje silenciosamente — registro caía no dia errado.
+  throw new Error("Data inválida (esperado dd/MM/yyyy): " + str);
 }
