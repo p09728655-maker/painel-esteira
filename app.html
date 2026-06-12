@@ -809,6 +809,7 @@ td.td-actions { width: 80px; text-align: right; }
         <input type="date" id="prog-input-data">
         <button class="btn btn-outline" onclick="progCarregarProgramacao()">Carregar</button>
         <span id="prog-status-carga" style="font-size:13px;color:var(--txt2)"></span>
+        <button class="btn btn-ok" onclick="progSalvarProgramacao()" id="prog-btn-salvar" style="margin-left:auto">Salvar no Sheets</button>
       </div>
     </div>
 
@@ -879,7 +880,6 @@ td.td-actions { width: 80px; text-align: right; }
         <div style="display:flex;gap:8px">
           <button class="btn btn-outline btn-sm" onclick="progLimparTudo()">Limpar tudo</button>
           <button class="btn btn-outline btn-sm" onclick="window.print()" style="border-color:var(--txt2);color:var(--txt2)">🖨 Imprimir</button>
-          <button class="btn btn-ok" onclick="progSalvarProgramacao()" id="prog-btn-salvar">Salvar no Sheets</button>
         </div>
       </div>
       <table class="tabela-prog">
