@@ -2345,8 +2345,8 @@ async function progCarregarSemana(){
     const tudo=await progApiFetch(`${getAppsScriptURL()}?acao=getProgramacao`)||[];
     const fmtBR=x=>`${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
     const nomes=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-    let html='<table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Produtos</th><th style="text-align:right">Caixas</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Tempo prod.</th><th style="text-align:right">Troca</th><th>Fim previsto</th><th style="text-align:right">H. extra</th><th></th></tr></thead><tbody>';
-    let totCx=0,totKg=0,totPt=0,totExtra=0,totTroca=0;
+    let html='<table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Produtos</th><th style="text-align:right">Caixas</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Tempo prod.</th><th style="text-align:right">Troca</th><th>Fim previsto</th><th style="text-align:right">H. extra / Folga</th><th></th></tr></thead><tbody>';
+    let totCx=0,totKg=0,totPt=0,totExtra=0,totFolga=0,totTroca=0;
     const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
     dias.forEach((x,i)=>{
       const br=fmtBR(x);
@@ -2381,15 +2381,21 @@ async function progCarregarSemana(){
       const fimMinDia=cur;
       const fim=(tempo>0?(estimado?'~':'')+minToHHMM(cur):'—');
       // horas extras necessárias = quanto o fim previsto passa do fim do turno (16:45)
-      const extra=tempo>0?Math.max(0,fimMinDia-parseHHMM(TURNO_FIM)):0;
-      totCx+=cx;totKg+=kg;totPt+=pt;totExtra+=extra;totTroca+=trocaDia;
+      const turnoFimMin=parseHHMM(TURNO_FIM);
+      const extra=tempo>0?Math.max(0,fimMinDia-turnoFimMin):0;
+      const folga=tempo>0?Math.max(0,turnoFimMin-fimMinDia):0;
+      totCx+=cx;totKg+=kg;totPt+=pt;totExtra+=extra;totFolga+=folga;totTroca+=trocaDia;
       const tempoStr=tempo>0?(estimado?'~':'')+fmtTempoHM(tempo):'—';
       const trocaStr=trocaDia>0?fmtTempoHM(trocaDia):'—';
-      const extraStr=extra>0?'+'+fmtTempoHM(extra):'—';
-      const clsExtra=extra>0?' class="td-num semana-extra"':' class="td-num"';
-      html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?kg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0)+' pt':'—'}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${extra>0?'Horas extras necessárias para cumprir a programação do dia':''}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
+      // mesma coluna: hora extra (vermelho) quando passa do turno, folga (verde) quando sobra tempo
+      const extraStr=extra>0?'+'+fmtTempoHM(extra):folga>0?fmtTempoHM(folga)+' folga':'—';
+      const clsExtra=extra>0?' class="td-num semana-extra"':folga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
+      const tituloExtra=extra>0?'Horas extras necessárias para cumprir a programação do dia':folga>0?'Tempo de sobra antes do fim do turno (16:45)':'';
+      html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?kg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0)+' pt':'—'}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
     });
-    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?totKg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0)+' pt':'—'}</td><td></td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td></td><td class="td-num${totExtra>0?' semana-extra':''}">${totExtra>0?'+'+fmtTempoHM(totExtra):'—'}</td><td></td></tr>`;
+    const totExtraStr=totExtra>0?'+'+fmtTempoHM(totExtra):totFolga>0?fmtTempoHM(totFolga)+' folga':'—';
+    const totExtraCls=totExtra>0?' class="td-num semana-extra"':totFolga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
+    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?totKg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0)+' pt':'—'}</td><td></td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
     html+='</tbody></table>';
     document.getElementById('prog-semana-body').innerHTML=html;
     document.getElementById('prog-card-semana').style.display='block';
