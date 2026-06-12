@@ -508,7 +508,7 @@ td.td-actions { width: 80px; text-align: right; }
   @page { margin: 15mm 12mm; }
   * { color: #000 !important; background: #fff !important; border-color: #ccc !important; box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   #app-header, #tab-operador, #tab-tv, #tab-simulacoes, #prog-print-header-toggle,
-  #prog-card-data, #prog-card-busca, #produto-preview, #prog-toast,
+  #prog-card-data, #prog-card-busca, #prog-card-semana, #produto-preview, #prog-toast,
   td.td-actions, .ordem-btns, .btn-order, .btn-red, .btn-ok, .btn-outline, .btn-accent,
   button, #prog-timeline-title, #prog-timeline, #prog-wrapper h2 { display: none !important; }
   #prog-print-header { display: block !important; }
@@ -835,6 +835,7 @@ td.td-actions { width: 80px; text-align: right; }
             onchange="progInicioChange(this)">
         </span>
         <button class="btn btn-outline" onclick="progCarregarProgramacao()">Carregar</button>
+        <button class="btn btn-outline" onclick="progCarregarSemana()" title="Resumo da semana da data selecionada (segunda a sábado)">Semana</button>
         <span id="prog-status-carga" style="font-size:13px;color:var(--txt2)"></span>
         <span style="display:inline-flex;align-items:center;gap:5px;margin-left:auto">
           <select id="prog-cenario" onchange="progCarregarCenario(this.value)"
@@ -847,6 +848,14 @@ td.td-actions { width: 80px; text-align: right; }
         </span>
         <button class="btn btn-ok" onclick="progSalvarProgramacao()" id="prog-btn-salvar">Salvar no Sheets</button>
       </div>
+    </div>
+
+    <div class="card" id="prog-card-semana" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="card-title" style="margin-bottom:0">Resumo da semana</div>
+        <button class="btn btn-outline btn-sm" onclick="progFecharSemana()">✕ Fechar</button>
+      </div>
+      <div id="prog-semana-body" style="overflow-x:auto"></div>
     </div>
 
     <div class="card" id="prog-card-busca">
@@ -2309,6 +2318,51 @@ async function progCarregarProgramacao(){
     status.textContent=`${progItens.length} produto(s) carregado(s).`;
     progToast('Programação carregada!','ok');
   }catch(e){status.textContent='';progToast('Erro ao carregar: '+e.message,'err');}
+}
+// Resumo da semana (segunda a sábado da semana da data selecionada)
+async function progCarregarSemana(){
+  const dataISO=progGarantirData();
+  if(!dataISO)return progToast('Selecione a data.','err');
+  const d=new Date(dataISO+'T12:00:00');
+  const dow=(d.getDay()+6)%7; // 0 = segunda
+  const seg=new Date(d);seg.setDate(d.getDate()-dow);
+  const dias=[];for(let i=0;i<6;i++){const x=new Date(seg);x.setDate(seg.getDate()+i);dias.push(x);}
+  const status=document.getElementById('prog-status-carga');
+  status.textContent='Carregando semana...';
+  try{
+    // sem o parâmetro de data o backend devolve todas as datas salvas
+    const tudo=await progApiFetch(`${getAppsScriptURL()}?acao=getProgramacao`)||[];
+    const fmtBR=x=>`${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
+    const nomes=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    let html='<table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Produtos</th><th style="text-align:right">Caixas</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Tempo prod.</th><th>Fim previsto</th><th></th></tr></thead><tbody>';
+    let totCx=0,totKg=0,totPt=0;
+    dias.forEach((x,i)=>{
+      const br=fmtBR(x);
+      const itens=tudo.filter(t=>t.data===br);
+      if(itens.length===0){
+        html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td colspan="6" style="color:var(--txt2)">— sem programação salva —</td><td></td></tr>`;
+        return;
+      }
+      const cx=itens.reduce((s,t)=>s+(t.qtd_cx||0),0);
+      const kg=itens.reduce((s,t)=>s+((parseFloat(t.pb)||0)*(t.qtd_cx||0)),0);
+      const pt=itens.reduce((s,t)=>s+((parseFloat(t.pontos)||0)*(t.qtd_cx||0)),0);
+      const tempo=itens.reduce((s,t)=>s+(t.tempo_min||0),0);
+      const fim=itens.reduce((m,t)=>(t.hora_fim||'')>m?t.hora_fim:m,'');
+      totCx+=cx;totKg+=kg;totPt+=pt;
+      html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?kg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0)+' pt':'—'}</td><td class="td-num">${fmtTempoHM(tempo)}</td><td class="td-hora">${fim||'—'}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
+    });
+    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?totKg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0)+' pt':'—'}</td><td colspan="3"></td></tr>`;
+    html+='</tbody></table>';
+    document.getElementById('prog-semana-body').innerHTML=html;
+    document.getElementById('prog-card-semana').style.display='block';
+    status.textContent='';
+  }catch(e){status.textContent='';progToast('Erro ao carregar semana: '+e.message,'err');}
+}
+function progFecharSemana(){document.getElementById('prog-card-semana').style.display='none';}
+function progAbrirDia(iso){
+  document.getElementById('prog-input-data').value=iso;
+  progSyncDataBR();
+  progCarregarProgramacao();
 }
 
 // ═══════════════════════════════════════════════════════════════
