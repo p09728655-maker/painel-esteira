@@ -1482,9 +1482,14 @@ function atualizarTotais(){
   const agoraMin=parseHHMM(agoraTempo());
   PERIODOS.forEach(p=>{
     const reg=opState.registros[p.id]||{};
-    metaAcum+=reg.meta||calcMetaParaPeriodo(p);
-    if(agoraMin>=parseHHMM(p.inicio))realAcum+=(reg.realizado||0);
+    const ini=parseHHMM(p.inicio),fim=parseHHMM(p.fim);
+    if(agoraMin<=ini)return; // período ainda não iniciado não entra na meta acumulada
+    const metaPeriodo=reg.meta||calcMetaParaPeriodo(p);
+    const fracao=agoraMin>=fim?1:(agoraMin-ini)/(fim-ini);
+    metaAcum+=metaPeriodo*fracao;
+    realAcum+=(reg.realizado||0);
   });
+  metaAcum=Math.round(metaAcum);
   const efic=metaAcum>0?(realAcum/metaAcum*100):0;
   let projecao=realAcum;
   if(opState.produto){
@@ -1515,12 +1520,21 @@ async function salvarRegistroAPI(periodoId){
   const reg=opState.registros[periodoId]||{};
   const periodo=PERIODOS.find(p=>p.id===periodoId);
   if(!periodo)return;
+  const agoraMin=parseHHMM(agoraTempo());
   let acumReal=0,acumMeta=0;
-  PERIODOS.forEach(p=>{const r=opState.registros[p.id]||{};acumReal+=r.realizado||0;acumMeta+=r.meta||calcMetaParaPeriodo(p);});
+  PERIODOS.forEach(p=>{
+    const r=opState.registros[p.id]||{};
+    const ini=parseHHMM(p.inicio),fim=parseHHMM(p.fim);
+    if(agoraMin<=ini)return; // período futuro não entra na meta acumulada
+    const metaPeriodo=r.meta||calcMetaParaPeriodo(p);
+    const fracao=agoraMin>=fim?1:(agoraMin-ini)/(fim-ini);
+    acumMeta+=metaPeriodo*fracao;
+    acumReal+=r.realizado||0;
+  });
+  acumMeta=Math.round(acumMeta);
   const efic=acumMeta>0?(acumReal/acumMeta*100):0;
   const ep=opState.produto.entre_pecas||0;
   const cxm=opCalcCxMin(opState.produto.vel,opState.produto.medida,ep);
-  const agoraMin=parseHHMM(agoraTempo());
   let minDecorr=0;
   PERIODOS.forEach(p=>{
     const ini2=parseHHMM(p.inicio),fim2=parseHHMM(p.fim);
@@ -1537,7 +1551,7 @@ async function salvarRegistroAPI(periodoId){
   };
   const cacheArr=Object.entries(opState.registros).map(([id,r])=>({...r,periodo:id}));
   salvarCache(opState.data,opState.linha,cacheArr);
-  const result=await apiFetch(`?acao=salvarRegistro`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const result=await apiFetch(`?acao=salvarRegistro`,{method:'POST',body:JSON.stringify(body)});
   if(result!==null)showToast('✓ Salvo','ok');
 }
 
@@ -1588,7 +1602,7 @@ async function confirmarParada(){
   if(!motivo){showToast('Selecione ou informe o motivo','err');return;}
   const iniMin=parseHHMM(inicio),fimMin=fim?parseHHMM(fim):parseHHMM(agoraTempo());
   const minutos=Math.max(0,fimMin-iniMin);
-  await apiFetch(`?acao=salvarParada`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:opState.data,linha:opState.linha,inicio,fim:fim||agoraTempo(),minutos,motivo})});
+  await apiFetch(`?acao=salvarParada`,{method:'POST',body:JSON.stringify({data:opState.data,linha:opState.linha,inicio,fim:fim||agoraTempo(),minutos,motivo})});
   fecharModalParada();showToast(`✓ Parada registrada: ${minutos} min`,'ok');
 }
 
@@ -1928,7 +1942,7 @@ function progRenderTabela(){
   document.getElementById('prog-ph-fadiga').textContent=fadPct>0?`Fadiga: ${fadPct}%`:'';
   const tbody=document.getElementById('prog-tbody');
   tbody.innerHTML='';
-  if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="14">Nenhum produto adicionado.</td></tr>';return;}
+  if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="14">Nenhum produto adicionado.</td></tr>';progAtualizarBotaoReset();return;}
   progItens.forEach((item,idx)=>{
     const tr=document.createElement('tr');
     const kgItem=item.pb>0?(item.qtd_cx*item.pb).toFixed(0)+' kg':'—';
@@ -2021,6 +2035,7 @@ async function progSalvarProgramacao(){
   if(progItens.length===0)return progToast('Adicione pelo menos um produto.','err');
   const dataISO=document.getElementById('prog-input-data').value;
   if(!dataISO)return progToast('Selecione a data.','err');
+  if(progSimulacaoAtiva()&&!confirm('Há uma SIMULAÇÃO ativa: a programação será salva com os valores simulados de velocidade/entre peças.\n\nOK = salvar assim mesmo\nCancelar = voltar (use o botão ↺ Reset para restaurar os valores originais antes de salvar)'))return;
   const btn=document.getElementById('prog-btn-salvar');
   btn.textContent='Salvando...';btn.disabled=true;
   const itensSalvar=progItens.map(({velBase,epBase,...resto})=>resto);
