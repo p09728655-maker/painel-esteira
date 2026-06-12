@@ -325,7 +325,8 @@ function getConfig() {
 
 // ── PROGRAMACAO ───────────────────────────────────────────────────────────────
 // Colunas: A=Data B=Ordem C=Codigo D=Descricao E=Qtd_cx F=Vel G=Medida
-//          H=Entre_pecas I=CxMin J=Tempo_min K=Hora_inicio L=Hora_fim
+//          H=Entre_pecas I=Troca_min J=CxMin K=Tempo_min L=Hora_inicio M=Hora_fim
+// (layout antigo, sem Troca_min na coluna I, é detectado pelo cabeçalho)
 
 function getProgramacao(data) {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
@@ -335,6 +336,12 @@ function getProgramacao(data) {
   var tz   = Session.getScriptTimeZone();
   var rows = sheet.getDataRange().getValues();
   var result = [];
+
+  // layout novo tem "Troca" no cabeçalho da coluna I; senão usa os índices antigos
+  var hasTroca = rows.length > 0 && String(rows[0][8] || "").toLowerCase().indexOf("troca") >= 0;
+  var iTroca = hasTroca ? 8 : -1;
+  var iCxMin = hasTroca ? 9 : 8, iTempo = hasTroca ? 10 : 9;
+  var iIni   = hasTroca ? 11 : 10, iFim  = hasTroca ? 12 : 11;
 
   for (var i = 1; i < rows.length; i++) {
     var r = rows[i];
@@ -352,10 +359,11 @@ function getProgramacao(data) {
       vel:          parseFloat(r[5])  || 0,
       medida:       parseFloat(r[6])  || 0,
       entre_pecas:  parseFloat(r[7])  || 0,
-      cx_min:       parseFloat(r[8])  || 0,
-      tempo_min:    parseFloat(r[9])  || 0,
-      hora_inicio:  String(r[10] || "").trim(),
-      hora_fim:     String(r[11] || "").trim(),
+      troca_min:    iTroca >= 0 ? (parseFloat(r[iTroca]) || 0) : 0,
+      cx_min:       parseFloat(r[iCxMin]) || 0,
+      tempo_min:    parseFloat(r[iTempo]) || 0,
+      hora_inicio:  String(r[iIni] || "").trim(),
+      hora_fim:     String(r[iFim] || "").trim(),
       pb:           0,
       pontos:       0
     });
@@ -388,10 +396,17 @@ function salvarProgramacao(body) {
 
   if (!sheet) {
     sheet = ss.insertSheet(ABA_PROG);
-    sheet.getRange(1, 1, 1, 12).setValues([[
+    sheet.getRange(1, 1, 1, 13).setValues([[
       "Data","Ordem","Codigo","Descricao","Qtd_cx","Vel","Medida",
-      "Entre_pecas","CxMin","Tempo_min","Hora_inicio","Hora_fim"
+      "Entre_pecas","Troca_min","CxMin","Tempo_min","Hora_inicio","Hora_fim"
     ]]);
+  } else {
+    // migra planilha antiga: insere a coluna I (Troca_min) deslocando as demais
+    var hdrI = String(sheet.getRange(1, 9).getValue() || "");
+    if (hdrI.toLowerCase().indexOf("troca") < 0) {
+      sheet.insertColumnBefore(9);
+      sheet.getRange(1, 9).setValue("Troca_min");
+    }
   }
 
   var tz      = Session.getScriptTimeZone();
@@ -422,6 +437,7 @@ function salvarProgramacao(body) {
       parseFloat(item.vel)        || 0,
       parseFloat(item.medida)     || 0,
       parseFloat(item.entre_pecas)|| 0,
+      parseFloat(item.troca_min)  || 0,
       parseFloat(item.cx_min)     || 0,
       parseFloat(item.tempo_min)  || 0,
       item.hora_inicio || "",

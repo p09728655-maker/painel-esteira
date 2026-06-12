@@ -2323,7 +2323,7 @@ async function progCarregarProgramacao(){
       const cxH=Math.round(cxMin*60),tmpMin=cxMin>0?parseFloat((item.qtd_cx/cxMin).toFixed(1)):0;
       const pb=parseFloat(item.pb)||(prod?parseFloat(prod.pb)||0:0);
       const pontos=parseFloat(item.pontos)||(prod?parseFloat(prod.pontos)||0:0);
-      return{codigo:item.codigo,descricao:item.descricao,qtd_cx:item.qtd_cx,vel,medida:med,entre_pecas:ep,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:cxH,tempo_min:tmpMin,hora_inicio:'',hora_fim:'',pb,pontos,troca_min:0};
+      return{codigo:item.codigo,descricao:item.descricao,qtd_cx:item.qtd_cx,vel,medida:med,entre_pecas:ep,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:cxH,tempo_min:tmpMin,hora_inicio:'',hora_fim:'',pb,pontos,troca_min:parseFloat(item.troca_min)||0};
     });
     progRecalcularHorarios();progRenderTabela();progRenderResumo();
     status.textContent=`${progItens.length} produto(s) carregado(s).`;
@@ -2374,7 +2374,9 @@ async function progCarregarSemana(){
         const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
         let cur=parseHHMM(TURNO_INICIO);
         tempos.forEach((tm,j)=>{
-          if(j>0&&trocaPadrao>0)cur=progAddMinComAlmoco(cur,trocaPadrao);
+          // usa a troca salva do item (coluna I do Sheets); sem ela, a troca padrão da barra
+          const tr=j>0?((parseFloat(itens[j].troca_min)||0)||trocaPadrao):0;
+          if(tr>0)cur=progAddMinComAlmoco(cur,tr);
           cur=progAddMinComAlmoco(cur,tm);
         });
         fim='~'+minToHHMM(cur);estimado=true;
