@@ -875,6 +875,7 @@ td.td-actions { width: 80px; text-align: right; }
               title="Entre peças (mm) — deixe vazio para usar o padrão de cada produto">
             <span>mm</span>
             <button class="btn btn-outline btn-sm" onclick="progSimularTodos()" style="padding:3px 10px;font-size:11px;border-color:var(--accent);color:var(--accent)">Simular</button>
+            <button class="btn btn-outline btn-sm" id="prog-btn-reset" onclick="progResetSimulacao()" style="display:none;padding:3px 10px;font-size:11px;border-color:var(--txt2);color:var(--txt2)" title="Restaurar velocidade e entre peças originais de cada produto">↺ Reset</button>
           </div>
         </div>
         <div style="display:flex;gap:8px">
@@ -1878,18 +1879,44 @@ function progSimularTodos(){
   const epOvr=epStr!==''?parseFloat(epStr):null;
   const fad=progGetFadiga();
   progItens.forEach(item=>{
-    const v=(velOvr!==null&&velOvr>0)?velOvr:item.vel;
-    const e=epOvr!==null?epOvr:item.entre_pecas;
-    const cxMin=(v>0&&(item.medida+e)>0)?calcCxMinRaw(v,item.medida,e)*(1-fad):0;
+    // guarda os valores originais na primeira simulação (para o reset)
+    if(item.velBase===undefined)item.velBase=item.vel;
+    if(item.epBase===undefined)item.epBase=item.entre_pecas;
+    if(velOvr!==null&&velOvr>0)item.vel=velOvr;
+    if(epOvr!==null)item.entre_pecas=epOvr;
+    const cxMin=(item.vel>0&&(item.medida+item.entre_pecas)>0)?calcCxMinRaw(item.vel,item.medida,item.entre_pecas)*(1-fad):0;
     item.cx_min=parseFloat(cxMin.toFixed(4));
     item.cx_h=Math.round(cxMin*60);
     item.tempo_min=parseFloat((cxMin>0?(item.qtd_cx/cxMin):0).toFixed(1));
   });
   progRecalcularHorarios();progRenderTabela();progRenderResumo();
+  progAtualizarBotaoReset();
   const msgs=[];
   if(velOvr!==null&&velOvr>0)msgs.push(`vel ${velOvr} m/min`);
   if(epOvr!==null)msgs.push(`ep ${epOvr} mm`);
   progToast(msgs.length?`Simulação aplicada: ${msgs.join(', ')}.`:'Usando valores padrão de cada produto.','ok');
+}
+function progSimulacaoAtiva(){return progItens.some(i=>i.velBase!==undefined||i.epBase!==undefined);}
+function progAtualizarBotaoReset(){
+  const btn=document.getElementById('prog-btn-reset');
+  if(btn)btn.style.display=progSimulacaoAtiva()?'inline-flex':'none';
+}
+function progResetSimulacao(){
+  if(!progSimulacaoAtiva())return;
+  const fad=progGetFadiga();
+  progItens.forEach(item=>{
+    if(item.velBase!==undefined){item.vel=item.velBase;delete item.velBase;}
+    if(item.epBase!==undefined){item.entre_pecas=item.epBase;delete item.epBase;}
+    const cxMin=(item.vel>0&&(item.medida+item.entre_pecas)>0)?calcCxMinRaw(item.vel,item.medida,item.entre_pecas)*(1-fad):0;
+    item.cx_min=parseFloat(cxMin.toFixed(4));
+    item.cx_h=Math.round(cxMin*60);
+    item.tempo_min=parseFloat((cxMin>0?(item.qtd_cx/cxMin):0).toFixed(1));
+  });
+  document.getElementById('prog-vel-sim').value='';
+  document.getElementById('prog-ep-sim').value='';
+  progRecalcularHorarios();progRenderTabela();progRenderResumo();
+  progAtualizarBotaoReset();
+  progToast('Valores originais restaurados.','ok');
 }
 
 function progRenderTabela(){
@@ -1934,6 +1961,7 @@ function progRenderTabela(){
       </td>`;
     tbody.appendChild(tr);
   });
+  progAtualizarBotaoReset();
 }
 function progRenderResumo(){
   const card=document.getElementById('prog-card-resumo');
@@ -1995,7 +2023,8 @@ async function progSalvarProgramacao(){
   if(!dataISO)return progToast('Selecione a data.','err');
   const btn=document.getElementById('prog-btn-salvar');
   btn.textContent='Salvando...';btn.disabled=true;
-  try{await progApiPost('salvarProgramacao',{data:isoToBR(dataISO),itens:progItens});progToast('Programação salva no Google Sheets!','ok');}
+  const itensSalvar=progItens.map(({velBase,epBase,...resto})=>resto);
+  try{await progApiPost('salvarProgramacao',{data:isoToBR(dataISO),itens:itensSalvar});progToast('Programação salva no Google Sheets!','ok');}
   catch(e){progToast('Erro ao salvar: '+e.message,'err');}
   finally{btn.textContent='Salvar no Sheets';btn.disabled=false;}
 }
