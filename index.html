@@ -402,12 +402,12 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 .tabela-prog td { padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
 .tabela-prog tr:last-child td { border-bottom: none; }
 .tabela-prog tr:hover td { background: rgba(255,255,255,0.02); }
-.prog-cell-input { width:76px; box-sizing:border-box; background:transparent; border:1px solid #444; border-radius:4px; color:var(--txt); text-align:right; padding:2px 18px 2px 4px; font-size:12px; font-family:'JetBrains Mono',monospace; }
+.prog-cell-input { width:66px; box-sizing:border-box; background:transparent; border:1px solid #444; border-radius:4px; color:var(--txt); text-align:right; padding:2px 16px 2px 4px; font-size:12px; font-family:'JetBrains Mono',monospace; }
 .prog-cell-input::-webkit-inner-spin-button { margin-left:4px; }
 .prog-cell-input:focus { border-color:var(--accent); outline:none; }
 .prog-cell-input.mod { border-color:var(--accent); color:var(--accent); font-weight:700; }
 td.td-ordem { color: var(--txt2); font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 36px; }
-td.td-produto { font-weight: 500; font-size: 14px; white-space: nowrap; text-align: left; }
+td.td-produto { font-weight: 500; font-size: 14px; white-space: normal; text-align: left; }
 td.td-codigo { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--txt2); }
 td.td-num { font-family: 'JetBrains Mono', monospace; text-align: right; white-space: nowrap; }
 td.td-hora { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); }
@@ -524,6 +524,14 @@ td.td-actions { width: 80px; text-align: right; }
   td.td-num { text-align: right !important; }
   td.td-produto { white-space: normal !important; text-align: left !important; }
   #prog-card-resumo { display: block !important; page-break-inside: avoid; }
+  /* o card da tabela é maior que uma página: precisa poder quebrar (senão vai inteiro p/ pág. 2) */
+  #prog-card-tabela { page-break-inside: auto; overflow: visible !important; }
+  #prog-toolbar, #prog-sim-delta { display: none !important; }
+  .tabela-prog thead { display: table-header-group; }
+  .tabela-prog tr { page-break-inside: avoid; }
+  /* inputs viram número puro no papel */
+  .tabela-prog input { border: none !important; background: transparent !important; -webkit-appearance: none; appearance: none; font-size: 11px !important; padding: 0 !important; width: 48px !important; }
+  .tabela-prog input::-webkit-inner-spin-button, .tabela-prog input::-webkit-outer-spin-button { -webkit-appearance: none; display: none; }
   .resumo-grid { display: grid !important; grid-template-columns: repeat(9, 1fr) !important; gap: 6px !important; }
   .resumo-item { border: 1px solid #ccc !important; border-radius: 3px !important; padding: 6px 8px !important; background: #f8f8f8 !important; }
   .resumo-val { font-size: 16px !important; font-weight: 700 !important; color: #000 !important; }
@@ -878,8 +886,8 @@ td.td-actions { width: 80px; text-align: right; }
       </div>
     </div>
 
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div class="card" id="prog-card-tabela" style="overflow-x:auto">
+      <div id="prog-toolbar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="card-title" style="margin-bottom:0">Estudo de Tempo · Setor Embalagem</div>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#EAB308">
@@ -923,7 +931,7 @@ td.td-actions { width: 80px; text-align: right; }
         <thead>
           <tr>
             <th style="width:36px">#</th>
-            <th style="width:400px">Produto</th>
+            <th style="width:340px">Produto</th>
             <th>Código</th>
             <th style="text-align:right">Vel (m/min)</th>
             <th style="text-align:right">Entre Pç (mm)</th>
@@ -2177,7 +2185,7 @@ function progRenderTabela(){
       <td class="td-num"><input type="number" min="0" step="1" value="${item.entre_pecas||0}" class="prog-cell-input${epMod?' mod':''}"
           title="${epMod?`Original: ${fmtNum(item.epBase,0)} mm`:'Entre peças deste produto (edite para simular)'}"
           onchange="progEditItem(${idx},'entre_pecas',this.value)"></td>
-      <td class="td-num"><input type="number" min="1" step="1" value="${item.qtd_cx}" class="prog-cell-input" style="width:84px"
+      <td class="td-num"><input type="number" min="1" step="1" value="${item.qtd_cx}" class="prog-cell-input" style="width:74px"
           title="Quantidade de caixas"
           onchange="progEditItem(${idx},'qtd_cx',this.value)"></td>
       <td class="td-num">${item.cx_h}</td>
@@ -2227,7 +2235,17 @@ function progRenderResumo(){
   document.getElementById('prog-res-inicio').textContent=progGetInicio();
   document.getElementById('prog-res-fim').textContent=fimReal;
   const obs=document.getElementById('prog-res-obs');
-  if(fimMin2>turnoFim2){const extra=fimMin2-turnoFim2;obs.textContent=`⚠ ${fmtTempoHM(extra)} além do turno`;obs.style.color='var(--warn)';document.getElementById('prog-res-fim').style.color='var(--warn)';}
+  // tempo fora do turno = o que começa antes das 07:00 + o que passa das 16:45
+  const turnoIni2=parseHHMM(TURNO_INICIO),iniEstudo=parseHHMM(progGetInicio());
+  const antes=Math.max(0,turnoIni2-iniEstudo);
+  const depois=Math.max(0,fimMin2-turnoFim2);
+  if(antes+depois>0){
+    const partes=[];
+    if(antes>0)partes.push(`${fmtTempoHM(antes)} antes das ${TURNO_INICIO}`);
+    if(depois>0)partes.push(`${fmtTempoHM(depois)} além das ${TURNO_FIM}`);
+    obs.textContent=`⚠ ${fmtTempoHM(antes+depois)} fora do turno (${partes.join(' + ')})`;
+    obs.style.color='var(--warn)';document.getElementById('prog-res-fim').style.color='var(--warn)';
+  }
   else{const folga=turnoFim2-fimMin2;obs.textContent=`✓ ${fmtTempoHM(folga)} de folga no turno`;obs.style.color='var(--ok)';document.getElementById('prog-res-fim').style.color='var(--accent)';}
   progRenderDelta();
   progRenderTimeline();
