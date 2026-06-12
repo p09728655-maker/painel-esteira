@@ -889,6 +889,7 @@ td.td-actions { width: 80px; text-align: right; }
             <th style="width:400px">Produto</th>
             <th>Código</th>
             <th style="text-align:right">Vel</th>
+            <th style="text-align:right">Entre Pç</th>
             <th style="text-align:right">Qtd (cx)</th>
             <th style="text-align:right">CX/H</th>
             <th style="text-align:right">Tempo</th>
@@ -901,7 +902,7 @@ td.td-actions { width: 80px; text-align: right; }
           </tr>
         </thead>
         <tbody id="prog-tbody">
-          <tr class="empty-row"><td colspan="13">Nenhum produto adicionado.</td></tr>
+          <tr class="empty-row"><td colspan="14">Nenhum produto adicionado.</td></tr>
         </tbody>
       </table>
     </div>
@@ -1900,7 +1901,7 @@ function progRenderTabela(){
   document.getElementById('prog-ph-fadiga').textContent=fadPct>0?`Fadiga: ${fadPct}%`:'';
   const tbody=document.getElementById('prog-tbody');
   tbody.innerHTML='';
-  if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="13">Nenhum produto adicionado.</td></tr>';return;}
+  if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="14">Nenhum produto adicionado.</td></tr>';return;}
   progItens.forEach((item,idx)=>{
     const tr=document.createElement('tr');
     const kgItem=item.pb>0?(item.qtd_cx*item.pb).toFixed(0)+' kg':'—';
@@ -1913,6 +1914,7 @@ function progRenderTabela(){
       <td class="td-produto">${item.descricao}</td>
       <td class="td-codigo">${item.codigo}</td>
       <td class="td-num">${item.vel>0?fmtNum(item.vel,1)+' m/min':'—'}</td>
+      <td class="td-num">${item.entre_pecas>0?fmtNum(item.entre_pecas,0)+' mm':'—'}</td>
       <td class="td-num">${item.qtd_cx.toLocaleString('pt-BR')}</td>
       <td class="td-num">${item.cx_h}</td>
       <td class="td-num">${fmtTempoHM(item.tempo_min)}</td>
