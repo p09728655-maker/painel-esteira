@@ -1007,14 +1007,6 @@ td.td-actions { width: 80px; text-align: right; }
         <div style="font-size:11px;color:var(--txt2);margin-top:4px">Cole a URL gerada após publicar o esteira_script.gs como Web App</div>
       </div>
       <div class="form-group">
-        <label>Turno início</label>
-        <input type="time" id="cfg-turno-inicio" value="07:00">
-      </div>
-      <div class="form-group">
-        <label>Turno fim</label>
-        <input type="time" id="cfg-turno-fim" value="16:45">
-      </div>
-      <div class="form-group">
         <label>Fadiga / Fator de eficiência esperada (%)</label>
         <input type="number" id="cfg-fadiga" placeholder="ex: 5" min="0" max="50" step="0.5" value="0">
         <div style="font-size:11px;color:var(--txt2);margin-top:4px">Desconto aplicado à meta teórica. Ex: 5 = meta reduzida em 5%</div>
@@ -1120,6 +1112,7 @@ function agoraTempo() {
 function parseHHMM(str) { const p=(str||'').split(':'); return parseInt(p[0]||0)*60+parseInt(p[1]||0); }
 function minToHHMM(min) { const h=Math.floor(min/60),m=Math.floor(min%60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
 function fmtNum(n, dec=0) { if(n==null||isNaN(n))return'—'; return n.toFixed(dec).replace('.',','); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtTempoHM(min) { const h=Math.floor(min/60),m=Math.round(min%60); if(h===0)return`${m}min`; return`${h}h${m>0?String(m).padStart(2,'0'):''}`; }
 function isoToBR(iso) { const p=iso.split('-'); return`${p[2]}/${p[1]}/${p[0]}`; }
 
@@ -1205,8 +1198,6 @@ function atualizarConnDot() {
 // ═══════════════════════════════════════════════════════════════
 function abrirConfig() {
   document.getElementById('cfg-url').value = getAppsScriptURL();
-  document.getElementById('cfg-turno-inicio').value = localStorage.getItem('esteira_turno_inicio') || '07:00';
-  document.getElementById('cfg-turno-fim').value = localStorage.getItem('esteira_turno_fim') || '16:45';
   document.getElementById('cfg-fadiga').value = fmtNum((opState.fatorFadiga||0)*100,1).replace(',','.');
   document.getElementById('cfg-test-result').classList.add('hidden');
   document.getElementById('modal-config').classList.remove('hidden');
@@ -1216,8 +1207,6 @@ function salvarConfig() {
   const url = document.getElementById('cfg-url').value.trim();
   const fadiga = Math.min(50, Math.max(0, parseFloat(document.getElementById('cfg-fadiga').value)||0));
   localStorage.setItem('esteira_apps_url', url);
-  localStorage.setItem('esteira_turno_inicio', document.getElementById('cfg-turno-inicio').value);
-  localStorage.setItem('esteira_turno_fim', document.getElementById('cfg-turno-fim').value);
   localStorage.setItem('esteira_fadiga_pct', fadiga);
   opState.fatorFadiga = fadiga / 100;
   fecharConfig();
@@ -1265,19 +1254,22 @@ async function apiFetch(path, opts={}) {
   const base = getAppsScriptURL();
   if (!base) { document.getElementById('offline-banner').classList.remove('hidden'); return null; }
   const url = path.startsWith('http') ? path : base + path;
+  let json;
   try {
     const controller = new AbortController();
     const timer = setTimeout(()=>controller.abort(),10000);
     const res = await fetch(url,{...opts,redirect:'follow',signal:controller.signal});
     clearTimeout(timer);
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error||'Erro API');
-    document.getElementById('offline-banner').classList.add('hidden');
-    return json.data;
+    json = await res.json();
   } catch(e) {
+    // erro de transporte (rede/timeout/CORS) → modo offline
     document.getElementById('offline-banner').classList.remove('hidden');
     return null;
   }
+  // chegou resposta do servidor: não estamos offline
+  document.getElementById('offline-banner').classList.add('hidden');
+  if (!json.ok) { console.warn('API:', json.error); return null; }
+  return json.data;
 }
 function lsKey(data,linha){return`esteira_${data}_${linha}`;}
 function salvarCache(data,linha,r){localStorage.setItem(lsKey(data,linha),JSON.stringify(r));}
@@ -1297,9 +1289,23 @@ function showToast(msg,tipo='ok'){
 
 // Linha
 function setLinha(l){
+  if(opState.linha===l)return;
   opState.linha=l;
+  // ao trocar de linha, o produto/histórico da linha anterior não valem mais
+  opState.produto=null;
+  opState.swapHistory=[];
+  renderProdutoCard();
   document.querySelectorAll('.linha-btn').forEach(b=>b.classList.toggle('ativo',b.textContent===l));
   carregarRegistros();
+}
+// Garante que opState.data acompanhe a virada do dia (tablet deixado aberto)
+function opVerificarVirada(){
+  const hoje=hojeStr();
+  if(opState.data!==hoje){
+    opState.data=hoje;
+    opState.registros={};
+    carregarRegistros();
+  }
 }
 
 // Product tabs
@@ -1433,11 +1439,27 @@ function renderTabela(){
       <td>${p.min}</td>
       <td>${meta||'—'}</td>
       <td><input type="number" class="realizado-input" value="${realizado}" min="0"
-          onchange="onRealizadoChange('${p.id}',this.value)"
-          onblur="onRealizadoChange('${p.id}',this.value)"></td>
+          onchange="onRealizadoChange('${p.id}',this.value)"></td>
       <td class="saldo-cell" style="color:${cor}">${saldoStr}</td>
       <td class="pct-cell" style="color:${cor}">${pctStr}</td>`;
     tbody.appendChild(tr);
+  });
+  atualizarTotais();
+}
+// Atualização leve (a cada minuto): só reaplica o destaque do período atual,
+// sem recriar os inputs (preservando foco/digitação do operador).
+function atualizarDestaqueTabela(){
+  const periodoAtual=getPeriodoAtual();
+  const agoraMin=parseHHMM(agoraTempo());
+  PERIODOS.forEach(p=>{
+    const row=document.getElementById('row-'+p.id);
+    if(!row)return;
+    const fimMin=parseHHMM(p.fim),iniMin=parseHHMM(p.inicio);
+    let rowClass='';
+    if(p.id===periodoAtual)rowClass='periodo-atual';
+    else if(agoraMin>=fimMin)rowClass='periodo-passado';
+    else if(agoraMin<iniMin)rowClass='periodo-futuro';
+    row.className=rowClass;
   });
   atualizarTotais();
 }
@@ -1648,7 +1670,9 @@ function tvLerCache(data){try{return JSON.parse(localStorage.getItem(tvLsKey(dat
 function tvCalcCxMin(vel,medida,ep){return calcCxMinRaw(vel,medida,ep);}
 function tvCalcMeta(vel,medida,min,ep){return Math.round(tvCalcCxMin(vel,medida,ep)*min);}
 function tvMinRestantesTurno(){
-  const agoraMin=parseHHMM(agoraTempo()),fimTurno=parseHHMM('16:45'),almIni=parseHHMM('11:00'),almFim=parseHHMM('12:12');
+  const iniTurno=parseHHMM('07:00'),fimTurno=parseHHMM('16:45'),almIni=parseHHMM('11:00'),almFim=parseHHMM('12:12');
+  // antes do início do turno, considera o turno cheio (não conta a madrugada)
+  const agoraMin=Math.max(parseHHMM(agoraTempo()),iniTurno);
   if(agoraMin>=fimTurno)return 0;
   let r=fimTurno-agoraMin;
   if(agoraMin<almIni)r-=(almFim-almIni);
@@ -1704,7 +1728,7 @@ function tvRenderTabela(){
     tr.id='tv-row-'+p.id;
     tr.innerHTML=`
       <td class="tv-periodo-td"><span class="pid">${p.id}</span><span class="prange">${p.inicio}–${p.fim}</span></td>
-      <td class="tv-produto-td" title="${nomeProd}">${nomeProd||'—'}</td>
+      <td class="tv-produto-td" title="${esc(nomeProd)}">${esc(nomeProd)||'—'}</td>
       <td style="color:${ehFuturo?'var(--txt2)':'var(--txt)'}">${meta||'—'}</td>
       <td style="color:${temDados?cor:'var(--txt2)'}">${temDados?realizado:'—'}</td>
       <td style="color:${temDados?'var(--txt)':'var(--txt2)'}">${temDados?acumReg:'—'}</td>
@@ -1870,7 +1894,9 @@ function progAdicionarItem(){
   const cxMin=progCalcCxMin(p.vel,p.medida,p.entre_pecas);
   const cxH=cxMin*60,tempMin=cxMin>0?(qtd/cxMin):0;
   progItens.push({codigo:p.codigo,descricao:p.descricao||p.codigo,qtd_cx:qtd,vel:p.vel||0,medida:p.medida||0,entre_pecas:p.entre_pecas||0,cx_min:parseFloat(cxMin.toFixed(4)),cx_h:Math.round(cxH),tempo_min:parseFloat(tempMin.toFixed(1)),hora_inicio:'',hora_fim:'',pb:parseFloat(p.pb)||0,pontos:parseFloat(p.pontos)||0,troca_min:0});
-  progRecalcularHorarios();progRenderTabela();progRenderResumo();
+  // se há simulação ativa, aplica o override vigente também ao item novo
+  if(progSimulacaoAtiva())progSimularTodos(true);
+  else{progRecalcularHorarios();progRenderTabela();progRenderResumo();}
   document.getElementById('prog-input-busca').value='';
   document.getElementById('prog-input-qtd').value='';
   progOcultarPreview();
@@ -1886,25 +1912,33 @@ function progAplicarTrocaGlobal(){
   progRecalcularHorarios();progRenderTabela();progRenderResumo();
   progToast(val>0?`Troca de ${val} min aplicada a todos os produtos.`:'Troca zerada em todos os produtos.','ok');
 }
-function progSimularTodos(){
+function progRecalcItem(item,fad){
+  const cxMin=(item.vel>0&&(item.medida+item.entre_pecas)>0)?calcCxMinRaw(item.vel,item.medida,item.entre_pecas)*(1-fad):0;
+  item.cx_min=parseFloat(cxMin.toFixed(4));
+  item.cx_h=Math.round(cxMin*60);
+  item.tempo_min=parseFloat((cxMin>0?(item.qtd_cx/cxMin):0).toFixed(1));
+}
+function progSimularTodos(silent){
   const velStr=document.getElementById('prog-vel-sim').value;
   const epStr=document.getElementById('prog-ep-sim').value;
   const velOvr=velStr!==''?parseFloat(velStr):null;
   const epOvr=epStr!==''?parseFloat(epStr):null;
+  const temOverride=(velOvr!==null&&velOvr>0)||(epOvr!==null);
   const fad=progGetFadiga();
   progItens.forEach(item=>{
     // guarda os valores originais na primeira simulação (para o reset)
     if(item.velBase===undefined)item.velBase=item.vel;
     if(item.epBase===undefined)item.epBase=item.entre_pecas;
-    if(velOvr!==null&&velOvr>0)item.vel=velOvr;
-    if(epOvr!==null)item.entre_pecas=epOvr;
-    const cxMin=(item.vel>0&&(item.medida+item.entre_pecas)>0)?calcCxMinRaw(item.vel,item.medida,item.entre_pecas)*(1-fad):0;
-    item.cx_min=parseFloat(cxMin.toFixed(4));
-    item.cx_h=Math.round(cxMin*60);
-    item.tempo_min=parseFloat((cxMin>0?(item.qtd_cx/cxMin):0).toFixed(1));
+    // campo vazio volta ao valor original; campo preenchido sobrescreve
+    item.vel=(velOvr!==null&&velOvr>0)?velOvr:item.velBase;
+    item.entre_pecas=(epOvr!==null)?epOvr:item.epBase;
+    // sem nenhum override ativo, deixa de ser simulação (limpa o base)
+    if(!temOverride){delete item.velBase;delete item.epBase;}
+    progRecalcItem(item,fad);
   });
   progRecalcularHorarios();progRenderTabela();progRenderResumo();
   progAtualizarBotaoReset();
+  if(silent)return;
   const msgs=[];
   if(velOvr!==null&&velOvr>0)msgs.push(`vel ${velOvr} m/min`);
   if(epOvr!==null)msgs.push(`ep ${epOvr} mm`);
@@ -1952,8 +1986,8 @@ function progRenderTabela(){
       :`<input type="number" min="0" step="1" value="${item.troca_min||0}" style="width:44px;background:transparent;border:1px solid #444;border-radius:4px;color:var(--txt);text-align:right;padding:2px 4px;font-size:12px" onchange="progItens[${idx}].troca_min=Math.max(0,parseInt(this.value)||0);progRecalcularHorarios();progRenderTabela();progRenderResumo()">`;
     tr.innerHTML=`
       <td class="td-ordem">${idx+1}</td>
-      <td class="td-produto">${item.descricao}</td>
-      <td class="td-codigo">${item.codigo}</td>
+      <td class="td-produto">${esc(item.descricao)}</td>
+      <td class="td-codigo">${esc(item.codigo)}</td>
       <td class="td-num">${item.vel>0?fmtNum(item.vel,1):'—'}</td>
       <td class="td-num">${item.entre_pecas>0?fmtNum(item.entre_pecas,0):'—'}</td>
       <td class="td-num">${item.qtd_cx.toLocaleString('pt-BR')}</td>
@@ -2027,7 +2061,7 @@ function progRenderTimeline(){
       }
     }
     const el=document.createElement('div');el.className='timeline-item';
-    el.innerHTML=`<div class="tl-hora">${item.hora_inicio}–${item.hora_fim}</div><div class="tl-nome">${item.descricao}</div><div class="tl-qtd">${item.qtd_cx} cx · ${fmtTempoHM(item.tempo_min)}</div>`;
+    el.innerHTML=`<div class="tl-hora">${item.hora_inicio}–${item.hora_fim}</div><div class="tl-nome">${esc(item.descricao)}</div><div class="tl-qtd">${item.qtd_cx} cx · ${fmtTempoHM(item.tempo_min)}</div>`;
     tl.appendChild(el);
   });
 }
@@ -2073,7 +2107,7 @@ async function progCarregarProgramacao(){
 // SIMULAÇÕES MODULE
 // ═══════════════════════════════════════════════════════════════
 function simGetFadiga(){return(parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0)/100;}
-function simGetAcel(){return parseFloat(localStorage.getItem('esteira_fator_acel'))||1.10;}
+function simGetAcel(){return opState.fatorAceleracao||1.10;}
 function simCalcCxMin(vel,medida,ep){return calcCxMinRaw(vel,medida,ep);}
 function simCalcMeta(vel,medida,min,ep){return Math.round(simCalcCxMin(vel,medida,ep)*min*(1-simGetFadiga()));}
 function simCalcMetaTurno(vel,medida,ep){return simCalcMeta(vel,medida,TOTAL_MIN,ep);}
@@ -2098,9 +2132,11 @@ function calcSim2(){
   const medida=parseFloat(document.getElementById('s2-med').value);
   const ep=parseFloat(document.getElementById('s2-entre').value)||0;
   if(!qtd||!medida){alert('Informe Qtd e MEDIDA');return;}
-  const velNec=(qtd/TOTAL_MIN)*((medida+ep)/1000);
-  const cxmNec=(velNec*1000)/(medida+ep);
-  const tempoNec=qtd/cxmNec,cabe=tempoNec<=TOTAL_MIN,saldo=TOTAL_MIN-tempoNec;
+  const fad=simGetFadiga();
+  // velocidade necessária considerando a fadiga (igual ao resto do app)
+  const velNec=(qtd/TOTAL_MIN)*((medida+ep)/1000)/(1-fad);
+  const cxmNec=simCalcCxMin(velNec,medida,ep);
+  const tempoNec=cxmNec>0?qtd/cxmNec:0,cabe=tempoNec<=TOTAL_MIN,saldo=TOTAL_MIN-tempoNec;
   const div=document.getElementById('s2-result');
   div.innerHTML=`<div>VEL necessária: <span class="hi">${fmtNum(velNec,2)} m/min</span></div><div>Cx/min: <span class="hi">${fmtNum(cxmNec,2)}</span></div><div>Tempo necessário: <span class="hi">${fmtNum(tempoNec,0)} min</span></div><div>Cabe no turno? <span class="${cabe?'ok':'bad'}">${cabe?'✓ SIM ('+fmtNum(Math.abs(saldo),0)+' min sobrando)':'✗ NÃO (faltam '+fmtNum(Math.abs(saldo),0)+' min)'}</span></div>`;
   div.classList.remove('hidden');
@@ -2116,7 +2152,7 @@ async function carregarSim3(){
   const lista=prods.filter(p=>p.vel>0&&p.medida>0).map(p=>({...p,cxmin:simCalcCxMin(p.vel,p.medida,p.entre_pecas||0),meta:simCalcMetaTurno(p.vel,p.medida,p.entre_pecas||0)})).sort((a,b)=>b.cxmin-a.cxmin);
   const maxMeta=lista[0]?.meta||1;
   let html='<table class="rank-table"><thead><tr><th>#</th><th>Produto</th><th>Cx/min</th><th>Meta Turno</th></tr></thead><tbody>';
-  lista.slice(0,30).forEach((p,i)=>{const pct=(p.meta/maxMeta*100),cls=i===0?'rank-1':'';html+=`<tr class="${cls}"><td style="color:var(--txt2)">${i+1}</td><td><div>${p.codigo}</div><div style="font-size:11px;color:var(--txt2)">${p.descricao.substring(0,28)}</div></td><td style="text-align:right">${fmtNum(p.cxmin,2)}</td><td style="text-align:right">${fmtNum(p.meta,0)}<div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div></td></tr>`;});
+  lista.slice(0,30).forEach((p,i)=>{const pct=(p.meta/maxMeta*100),cls=i===0?'rank-1':'';html+=`<tr class="${cls}"><td style="color:var(--txt2)">${i+1}</td><td><div>${esc(p.codigo)}</div><div style="font-size:11px;color:var(--txt2)">${esc(p.descricao.substring(0,28))}</div></td><td style="text-align:right">${fmtNum(p.cxmin,2)}</td><td style="text-align:right">${fmtNum(p.meta,0)}<div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div></td></tr>`;});
   html+='</tbody></table>';
   div.innerHTML=html;div.style.padding='0';div.style.border='none';div.style.background='transparent';
   sim3Carregado=true;
@@ -2147,7 +2183,7 @@ function calcSim4(){
   atualizarConnDot();
   await carregarConfig();
   await carregarRegistros();
-  setInterval(()=>renderTabela(),60000);
+  setInterval(()=>{opVerificarVirada();atualizarDestaqueTabela();},60000);
   const prods=await apiFetch(`?acao=produtos`);
   if(prods)salvarCacheProdutos(prods);
 
