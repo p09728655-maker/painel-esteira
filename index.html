@@ -1174,7 +1174,7 @@ function agoraTempo() {
 }
 function parseHHMM(str) { const p=(str||'').split(':'); return parseInt(p[0]||0)*60+parseInt(p[1]||0); }
 function minToHHMM(min) { const h=Math.floor(min/60),m=Math.floor(min%60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
-function fmtNum(n, dec=0) { if(n==null||isNaN(n))return'—'; return n.toFixed(dec).replace('.',','); }
+function fmtNum(n, dec=0) { if(n==null||isNaN(n))return'—'; return n.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtTempoHM(min) { const h=Math.floor(min/60),m=Math.round(min%60); if(h===0)return`${m}min`; return`${h}h${m>0?String(m).padStart(2,'0'):''}`; }
 function isoToBR(iso) { const p=iso.split('-'); return`${p[2]}/${p[1]}/${p[0]}`; }
@@ -2393,11 +2393,11 @@ async function progCarregarSemana(){
       const extraStr=extra>0?'+'+fmtTempoHM(extra):folga>0?fmtTempoHM(folga)+' folga':'—';
       const clsExtra=extra>0?' class="td-num semana-extra"':folga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
       const tituloExtra=extra>0?'Horas extras necessárias para cumprir a programação do dia':folga>0?'Tempo de sobra antes do fim do turno (16:45)':'';
-      html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?kg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0)+' pt':'—'}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
+      html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR')+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0)+' pt':'—'}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
     });
     const totExtraStr=totExtra>0?'+'+fmtTempoHM(totExtra):totFolga>0?fmtTempoHM(totFolga)+' folga':'—';
     const totExtraCls=totExtra>0?' class="td-num semana-extra"':totFolga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
-    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?totKg.toFixed(0)+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0)+' pt':'—'}</td><td></td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
+    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR')+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0)+' pt':'—'}</td><td></td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
     html+='</tbody></table>';
     document.getElementById('prog-semana-body').innerHTML=html;
     document.getElementById('prog-card-semana').style.display='block';
