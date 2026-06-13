@@ -39,7 +39,7 @@ select option { background: var(--surface); }
   top: 0; left: 0; right: 0;
   height: var(--hdr);
   background: var(--surface);
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   padding: 0 16px;
@@ -50,7 +50,7 @@ select option { background: var(--surface); }
 .app-brand {
   font-size: 20px;
   font-weight: 800;
-  color: var(--accent);
+  color: var(--txt);
   letter-spacing: 1px;
   white-space: nowrap;
   flex-shrink: 0;
@@ -682,7 +682,7 @@ td.td-actions { width: 80px; text-align: right; }
           <div class="meta-item"><span class="val" id="card-meta-hora">—</span><span class="lbl">cx/hora</span></div>
         </div>
         <div style="margin-top:4px;min-height:16px">
-          <span id="card-fadiga-badge" style="display:none;font-size:11px;color:var(--warn);font-family:'JetBrains Mono',monospace;background:rgba(255,152,0,0.1);border:1px solid rgba(255,152,0,0.3);border-radius:4px;padding:2px 7px"></span>
+          <span id="card-fadiga-badge" style="display:none;font-size:11px;color:var(--warn);font-family:'JetBrains Mono',monospace;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.3);border-radius:4px;padding:2px 7px"></span>
         </div>
         <button id="btn-trocar-produto" onclick="abrirModalTroca()">⇄ TROCAR PRODUTO</button>
       </div>
@@ -913,7 +913,7 @@ td.td-actions { width: 80px; text-align: right; }
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#EAB308">
             <span>Fadiga:</span>
             <input type="number" id="prog-fadiga" min="0" max="50" step="0.5" value="0"
-              style="width:52px;background:rgba(255,152,0,0.1);border:1px solid rgba(255,152,0,0.35);border-radius:5px;color:#EAB308;text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
+              style="width:52px;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.35);border-radius:5px;color:#EAB308;text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
               title="Percentual de fadiga aplicado às metas (desconto de eficiência esperada)"
               onchange="progSetFadiga(this.value)">
             <span>%</span>
@@ -2381,13 +2381,13 @@ async function progCarregarSemana(){
         cur=progAddMinComAlmoco(cur,tm);
       });
       const fimMinDia=cur;
-      const fim=(tempo>0?(estimado?'~':'')+minToHHMM(cur):'—');
+      const fim=(tempo>0?minToHHMM(cur):'—');
       // horas extras necessárias = quanto o fim previsto passa do fim do turno (16:45)
       const turnoFimMin=parseHHMM(TURNO_FIM);
       const extra=tempo>0?Math.max(0,fimMinDia-turnoFimMin):0;
       const folga=tempo>0?Math.max(0,turnoFimMin-fimMinDia):0;
       totCx+=cx;totKg+=kg;totPt+=pt;totExtra+=extra;totFolga+=folga;totTroca+=trocaDia;
-      const tempoStr=tempo>0?(estimado?'~':'')+fmtTempoHM(tempo):'—';
+      const tempoStr=tempo>0?fmtTempoHM(tempo):'—';
       const trocaStr=trocaDia>0?fmtTempoHM(trocaDia):'—';
       // mesma coluna: hora extra (vermelho) quando passa do turno, folga (verde) quando sobra tempo
       const extraStr=extra>0?'+'+fmtTempoHM(extra):folga>0?fmtTempoHM(folga)+' folga':'—';
