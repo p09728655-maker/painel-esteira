@@ -555,7 +555,7 @@ td.td-actions { width: 80px; text-align: right; }
 <!-- APP HEADER                                                      -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div id="app-header">
-  <span class="app-brand">ritmoprod<span>.</span></span>
+  <span class="app-brand">ritmoprod<span>.</span></span><span id="app-version" style="font-size:10px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-left:6px;opacity:0.6"></span>
   <nav class="app-tabs">
     <button class="app-tab" onclick="switchTab('operador')">Operador</button>
     <button class="app-tab" onclick="switchTab('tv')">TV</button>
@@ -1158,6 +1158,7 @@ const PERIODOS = [
   { id:"P9", label:"16:00–16:45", inicio:"16:00", fim:"16:45", min:45 },
 ];
 const TOTAL_MIN = 513;
+const APP_VERSION = 'v1.0.0';
 
 function hojeStr() {
   const d = new Date();
@@ -2489,6 +2490,8 @@ function calcSim4(){
 // INIT
 // ═══════════════════════════════════════════════════════════════
 (async function init(){
+  document.getElementById('app-version').textContent=APP_VERSION;
+
   // Programação — ANTES de qualquer await: se ficar depois, as chamadas lentas
   // ao Apps Script terminam após o usuário já ter digitado outra data e
   // sobrescrevem o campo de volta para hoje.
