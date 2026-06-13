@@ -910,13 +910,8 @@ td.td-actions { width: 80px; text-align: right; }
       <div id="prog-toolbar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="card-title" style="margin-bottom:0">Estudo de Tempo · Setor Embalagem</div>
-          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#EAB308">
-            <span>Fadiga:</span>
-            <input type="number" id="prog-fadiga" min="0" max="50" step="0.5" value="0"
-              style="width:52px;background:rgba(234,179,8,0.1);border:1px solid rgba(234,179,8,0.35);border-radius:5px;color:#EAB308;text-align:right;padding:3px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
-              title="Percentual de fadiga aplicado às metas (desconto de eficiência esperada)"
-              onchange="progSetFadiga(this.value)">
-            <span>%</span>
+          <div style="display:flex;align-items:center;gap:4px;font-size:12px;color:#EAB308;font-family:'JetBrains Mono',monospace" title="Fadiga fixa em 15%">
+            <span>Fadiga: 15%</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--txt2);margin-left:8px;padding-left:8px;border-left:1px solid var(--border)">
             <span>Troca:</span>
@@ -1909,7 +1904,8 @@ function progAbrirCalendario(){
   el.style.pointerEvents='none';
 }
 
-function progGetFadiga(){return(parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0)/100;}
+const FADIGA_PCT = 15; // alterar aqui para mudar o percentual de fadiga
+function progGetFadiga(){return FADIGA_PCT/100;}
 function progSetFadiga(v){
   const pct=Math.min(50,Math.max(0,parseFloat(v)||0));
   localStorage.setItem('esteira_fadiga_pct',pct);
@@ -2178,12 +2174,8 @@ function progResetSimulacao(){
 }
 
 function progRenderTabela(){
-  const fadPct=parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0;
-  const fadInput=document.getElementById('prog-fadiga');
-  if(fadInput&&document.activeElement!==fadInput)fadInput.value=fadPct;
   const dataISO=document.getElementById('prog-input-data').value;
   document.getElementById('prog-ph-data').textContent=dataISO?isoToBR(dataISO):'—';
-  document.getElementById('prog-ph-fadiga').textContent=fadPct>0?`Fadiga: ${fadPct}%`:'';
   const tbody=document.getElementById('prog-tbody');
   tbody.innerHTML='';
   if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="14">Nenhum produto adicionado.</td></tr>';progAtualizarBotaoReset();return;}
@@ -2420,7 +2412,7 @@ function progAbrirDia(iso){
 // ═══════════════════════════════════════════════════════════════
 // SIMULAÇÕES MODULE
 // ═══════════════════════════════════════════════════════════════
-function simGetFadiga(){return(parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0)/100;}
+function simGetFadiga(){return FADIGA_PCT/100;}
 function simGetAcel(){return opState.fatorAceleracao||1.10;}
 function simCalcCxMin(vel,medida,ep){return calcCxMinRaw(vel,medida,ep);}
 function simCalcMeta(vel,medida,min,ep){return Math.round(simCalcCxMin(vel,medida,ep)*min*(1-simGetFadiga()));}
@@ -2497,12 +2489,10 @@ function calcSim4(){
   // sobrescrevem o campo de volta para hoje.
   document.getElementById('prog-input-data').value=hojeISO();
   progSyncDataBR();
-  document.getElementById('prog-fadiga').value=parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0;
   progRefreshCenarios('');
 
   // Operator
-  const fadSalvo=parseFloat(localStorage.getItem('esteira_fadiga_pct'))||0;
-  opState.fatorFadiga=fadSalvo/100;
+  opState.fatorFadiga=FADIGA_PCT/100;
   renderTabela();
   atualizarConnDot();
   await carregarConfig();
