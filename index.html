@@ -2189,7 +2189,7 @@ function progRenderTabela(){
   if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="14">Nenhum produto adicionado.</td></tr>';progAtualizarBotaoReset();return;}
   progItens.forEach((item,idx)=>{
     const tr=document.createElement('tr');
-    const kgItem=item.pb>0?(item.qtd_cx*item.pb).toFixed(0)+' kg':'—';
+    const kgItem=item.pb>0?Math.round(item.qtd_cx*item.pb).toLocaleString('pt-BR')+' kg':'—';
     const ptItem=item.pontos>0?fmtNum(item.qtd_cx*item.pontos,0)+' pt':'—';
     const velMod=item.velBase!==undefined&&item.vel!==item.velBase;
     const epMod=item.epBase!==undefined&&item.entre_pecas!==item.epBase;
@@ -2244,7 +2244,7 @@ function progRenderResumo(){
   document.getElementById('prog-res-qtd-itens').textContent=progItens.length;
   document.getElementById('prog-res-total-cx').textContent=totalCx.toLocaleString('pt-BR');
   const kgEl=document.getElementById('prog-res-total-kg'),kgSub=document.getElementById('prog-res-total-kg-sub');
-  if(totalKg>0){kgEl.textContent=totalKg.toFixed(0)+' kg';kgSub.textContent=itensComKg<progItens.length?`${progItens.length-itensComKg} sem peso cadastrado`:'';}
+  if(totalKg>0){kgEl.textContent=Math.round(totalKg).toLocaleString('pt-BR')+' kg';kgSub.textContent=itensComKg<progItens.length?`${progItens.length-itensComKg} sem peso cadastrado`:'';}
   else{kgEl.textContent='—';kgSub.textContent='sem peso cadastrado';}
   document.getElementById('prog-res-total-pontos').textContent=totalPontos>0?fmtNum(totalPontos,0)+' pt':'—';
   document.getElementById('prog-res-total-troca').textContent=totalTroca>0?fmtTempoHM(totalTroca):'—';
