@@ -2181,8 +2181,8 @@ function progRenderTabela(){
   if(progItens.length===0){tbody.innerHTML='<tr class="empty-row"><td colspan="14">Nenhum produto adicionado.</td></tr>';progAtualizarBotaoReset();return;}
   progItens.forEach((item,idx)=>{
     const tr=document.createElement('tr');
-    const kgItem=item.pb>0?Math.round(item.qtd_cx*item.pb).toLocaleString('pt-BR')+' kg':'—';
-    const ptItem=item.pontos>0?fmtNum(item.qtd_cx*item.pontos,0)+' pt':'—';
+    const kgItem=item.pb>0?Math.round(item.qtd_cx*item.pb).toLocaleString('pt-BR'):'—';
+    const ptItem=item.pontos>0?fmtNum(item.qtd_cx*item.pontos,0):'—';
     const velMod=item.velBase!==undefined&&item.vel!==item.velBase;
     const epMod=item.epBase!==undefined&&item.entre_pecas!==item.epBase;
     const trocaInput=idx===0
@@ -2236,9 +2236,9 @@ function progRenderResumo(){
   document.getElementById('prog-res-qtd-itens').textContent=progItens.length;
   document.getElementById('prog-res-total-cx').textContent=totalCx.toLocaleString('pt-BR');
   const kgEl=document.getElementById('prog-res-total-kg'),kgSub=document.getElementById('prog-res-total-kg-sub');
-  if(totalKg>0){kgEl.textContent=Math.round(totalKg).toLocaleString('pt-BR')+' kg';kgSub.textContent=itensComKg<progItens.length?`${progItens.length-itensComKg} sem peso cadastrado`:'';}
+  if(totalKg>0){kgEl.textContent=Math.round(totalKg).toLocaleString('pt-BR');kgSub.textContent=itensComKg<progItens.length?`${progItens.length-itensComKg} sem peso cadastrado`:'';}
   else{kgEl.textContent='—';kgSub.textContent='sem peso cadastrado';}
-  document.getElementById('prog-res-total-pontos').textContent=totalPontos>0?fmtNum(totalPontos,0)+' pt':'—';
+  document.getElementById('prog-res-total-pontos').textContent=totalPontos>0?fmtNum(totalPontos,0):'—';
   document.getElementById('prog-res-total-troca').textContent=totalTroca>0?fmtTempoHM(totalTroca):'—';
   document.getElementById('prog-res-tempo').textContent=fmtTempoHM(totalMin);
   document.getElementById('prog-res-tempo-min').textContent=`${Math.round(totalMin)} minutos`;
@@ -2385,11 +2385,11 @@ async function progCarregarSemana(){
       const extraStr=extra>0?'+'+fmtTempoHM(extra):folga>0?fmtTempoHM(folga)+' folga':'—';
       const clsExtra=extra>0?' class="td-num semana-extra"':folga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
       const tituloExtra=extra>0?'Horas extras necessárias para cumprir a programação do dia':folga>0?'Tempo de sobra antes do fim do turno (16:45)':'';
-      html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR')+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0)+' pt':'—'}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
+      html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0):'—'}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
     });
     const totExtraStr=totExtra>0?'+'+fmtTempoHM(totExtra):totFolga>0?fmtTempoHM(totFolga)+' folga':'—';
     const totExtraCls=totExtra>0?' class="td-num semana-extra"':totFolga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
-    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR')+' kg':'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0)+' pt':'—'}</td><td></td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
+    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0):'—'}</td><td></td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
     html+='</tbody></table>';
     document.getElementById('prog-semana-body').innerHTML=html;
     document.getElementById('prog-card-semana').style.display='block';
