@@ -1013,6 +1013,7 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
     <section id="sec-material" style="display:none;">
       <div class="section-title">Assistências por Modelo — Relatório × Curva ABC</div>
       <p style="color:var(--text-muted);font-size:.8rem;margin:.3rem 0 1rem;">Assistências técnicas agrupadas por modelo, cruzadas pelo <strong>código</strong> do produto com a Curva ABC. O % mostra quanto cada modelo representa do total de peças; ao lado, unidades vendidas, taxa de assistência (peças ÷ vendidas) e faturamento.</p>
+      <div style="margin:.2rem 0 1rem;"><button onclick="printAssist()" style="background:var(--accent,#FF5C1F);color:#0a0a0b;border:none;border-radius:6px;padding:.45rem .9rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">🖨️ Imprimir / PDF</button></div>
       <div id="mat-content" style="overflow-x:auto;"></div>
     </section>
 
@@ -4077,6 +4078,34 @@ function buildAssistByModel(){
   const grandFat=[...cv.values()].reduce((s,m)=>s+(m.fat||0),0);
   return {arr,totalQtd,totalAssist,motivos,categorias,produtos,pecas,grandFat};
 }
+// Monta o bloco de Resumo Executivo (leitura automática em linguagem de gestão).
+function _assistResumoExec(d,pct,esc,catBadge){
+  const {arr,totalQtd,totalAssist,categorias,produtos,pecas}=d;
+  if(!totalQtd)return'';
+  const topProd=produtos[0], topPeca=pecas[0], topCat=categorias[0];
+  // Pareto: quantos modelos concentram 80% das peças
+  let acc=0,n80=0;for(const g of arr){acc+=g.qtd;n80++;if(acc>=totalQtd*0.8)break;}
+  const pareto80=arr.length?fmtPct(n80/arr.length*100):'—';
+  // share de qualidade vs não-qualidade (logística/estoque)
+  const logi=categorias.find(c=>c.categoria==='Logística / Estoque');
+  const logiShare=logi?logi.qtd/totalQtd*100:0;
+  // ofensor relativo: maior taxa de assistência (peças ÷ vendidas) com volume relevante
+  let ofensor=null;
+  for(const g of arr){if(g.vend>0&&g.qtd>=10&&g.taxa!=null){if(!ofensor||g.taxa>ofensor.taxa)ofensor=g;}}
+  const ins=[];
+  ins.push(`<strong>${fmtInt(totalAssist||0)}</strong> assistências geraram <strong>${fmtInt(totalQtd)}</strong> trocas de peça em <strong>${fmtInt(arr.length)}</strong> modelos.`);
+  if(topProd)ins.push(`Produto mais crítico: <strong>${esc(topProd.nome)}</strong> — ${fmtInt(topProd.qtd)} peças (${pct(topProd.qtd)}) em ${fmtInt(topProd.ocor)} ocorrências.`);
+  if(topPeca)ins.push(`Peça que mais falha: <strong>${esc(topPeca.nome)}</strong> — ${fmtInt(topPeca.qtd)} peças (${pct(topPeca.qtd)}), motivo predominante ${catBadge(topPeca.topMotivo)}.`);
+  if(topCat)ins.push(`Categoria de motivo líder: ${catBadge(topCat.categoria)} com ${fmtInt(topCat.qtd)} peças (${pct(topCat.qtd)}).`);
+  ins.push(`Concentração (Pareto): <strong>${fmtInt(n80)}</strong> modelos (${pareto80}) concentram 80% das peças.`);
+  if(logiShare>=3)ins.push(`Atenção: <strong>${fmtPct(logiShare)}</strong> das peças são <strong>Logística / Estoque</strong> (ex.: estoque regulador) — não são defeito de qualidade.`);
+  if(ofensor)ins.push(`Maior taxa de assistência: <strong>${esc(ofensor.name)}</strong> — ${fmtPct(ofensor.taxa,2)} (peças ÷ unidades vendidas).`);
+  return `<div style="background:var(--surface2,#1e293b);border:1px solid var(--border,#334155);border-left:4px solid var(--accent,#FF5C1F);border-radius:8px;padding:1rem 1.2rem;margin-bottom:1.2rem;">`
+    +`<div style="font-weight:800;font-size:.92rem;margin-bottom:.5rem;color:var(--accent,#FF5C1F);">📋 Resumo executivo</div>`
+    +`<ul style="margin:0;padding-left:1.1rem;line-height:1.6;font-size:.84rem;">`
+    +ins.map(t=>`<li>${t}</li>`).join('')
+    +`</ul></div>`;
+}
 function renderMaterialTab(){
   const content=document.getElementById('mat-content');
   if(!content)return;
@@ -4092,11 +4121,16 @@ function renderMaterialTab(){
   // classe ABC por volume acumulado de peças
   let cum=0;const cls=q=>{cum+=q;const p=totalQtd>0?cum/totalQtd*100:0;return p<=80?'A':p<=95?'B':'C';};
   const clsBadge=c=>`<span style="font-weight:700;color:${c==='A'?'#4ade80':c==='B'?'#fbbf24':'#f87171'}">${c}</span>`;
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const catColor=c=>({'Avaria / Quebra':'#f87171','Acabamento':'#fbbf24','Divergência':'#a78bfa','Faltante':'#60a5fa','Logística / Estoque':'#34d399','Furação / Montagem':'#f472b6','Componente':'#22d3ee','Sem motivo':'#71717a'}[c]||'#94a3b8');
+  const catBadge=c=>`<span style="display:inline-block;padding:.05rem .45rem;border-radius:999px;font-size:.7rem;font-weight:700;color:#0a0a0b;background:${catColor(c)};">${esc(c)}</span>`;
   let html=`<div style="font-size:.85rem;color:var(--text-muted);margin-bottom:.8rem;">`
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(totalAssist||MATERIAL.length)}</strong> assistências · `
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(totalQtd)}</strong> peças · `
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(arr.length)}</strong> modelos`
     +(foraCurva?` · <span style="color:#fbbf24">${fmtInt(foraCurva)} fora da Curva ABC</span>`:'')+`</div>`;
+  // ── Resumo executivo (leitura automática) ──
+  html+=_assistResumoExec({arr,totalQtd,totalAssist,categorias,produtos,pecas},pct,esc,catBadge);
   // ── Tabela por modelo ──
   html+='<table class="mov-table"><thead><tr>'
     +'<th>Modelo</th><th>Família</th><th style="text-align:right">Nº assist.</th>'
@@ -4127,9 +4161,6 @@ function renderMaterialTab(){
     +`<td style="text-align:right;font-weight:800;color:var(--accent);">${totalQtd>0?fmtPct(100):'—'}</td>`
     +`<td></td><td></td><td></td><td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(grandFat)}</td><td></td></tr>`;
   html+='</tbody></table>';
-  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-  const catColor=c=>({'Avaria / Quebra':'#f87171','Acabamento':'#fbbf24','Divergência':'#a78bfa','Faltante':'#60a5fa','Logística / Estoque':'#34d399','Furação / Montagem':'#f472b6','Componente':'#22d3ee','Sem motivo':'#71717a'}[c]||'#94a3b8');
-  const catBadge=c=>`<span style="display:inline-block;padding:.05rem .45rem;border-radius:999px;font-size:.7rem;font-weight:700;color:#0a0a0b;background:${catColor(c)};">${esc(c)}</span>`;
   const TOPN=30;
   // ── Produtos com mais ocorrências (produto referência) ──
   if(produtos.length){
@@ -4192,6 +4223,76 @@ function renderMaterialTab(){
   }
   html+='</tbody></table></div>';
   content.innerHTML=html;
+}
+// Gera um relatório limpo (tema claro) em nova janela e abre a impressão (Salvar como PDF).
+function printAssist(){
+  if(!MATERIAL.length){alert('Carregue a planilha com a aba de assistências antes de gerar o relatório.');return;}
+  const {arr,totalQtd,totalAssist,motivos,categorias,produtos,pecas,grandFat}=buildAssistByModel();
+  const pct=v=>totalQtd>0?fmtPct(v/totalQtd*100):'—';
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const tbl=(titulo,cols,rows)=>{
+    let s=`<h2>${esc(titulo)}</h2><table><thead><tr>`+cols.map(c=>`<th class="${c.r?'r':''}">${esc(c.t)}</th>`).join('')+'</tr></thead><tbody>';
+    s+=rows.map(r=>'<tr>'+r.map((cell,i)=>`<td class="${cols[i].r?'r':''}">${cell}</td>`).join('')+'</tr>').join('');
+    return s+'</tbody></table>';
+  };
+  const now=new Date().toLocaleString('pt-BR');
+  let h='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Assistências — ritmoprod</title>';
+  h+='<style>'
+    +'*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;font-size:12px;}'
+    +'h1{font-size:18px;margin:0 0 2px;color:#FF5C1F;}h2{font-size:13px;margin:18px 0 6px;border-bottom:2px solid #FF5C1F;padding-bottom:3px;}'
+    +'.sub{color:#555;font-size:11px;margin-bottom:6px;}'
+    +'.kpis{margin:8px 0 4px;font-size:12px;}.kpis b{font-size:14px;}'
+    +'table{border-collapse:collapse;width:100%;margin-bottom:6px;}'
+    +'th,td{border:1px solid #ccc;padding:3px 6px;text-align:left;}th{background:#f3f3f3;}'
+    +'.r{text-align:right;}tbody tr:nth-child(even){background:#fafafa;}'
+    +'ul{margin:4px 0 10px;padding-left:18px;}li{margin:2px 0;}'
+    +'@media print{body{margin:10mm;}h2{page-break-after:avoid;}tr{page-break-inside:avoid;}}'
+    +'</style></head><body>';
+  h+=`<h1>ritmoprod — Relatório de Assistências Técnicas</h1>`;
+  h+=`<div class="sub">Gerado em ${esc(now)}</div>`;
+  h+=`<div class="kpis"><b>${fmtInt(totalAssist||MATERIAL.length)}</b> assistências &nbsp;·&nbsp; <b>${fmtInt(totalQtd)}</b> peças &nbsp;·&nbsp; <b>${fmtInt(arr.length)}</b> modelos</div>`;
+  // Resumo executivo (texto)
+  {
+    const tp=produtos[0],tpc=pecas[0],tc=categorias[0];
+    let acc=0,n80=0;for(const g of arr){acc+=g.qtd;n80++;if(acc>=totalQtd*0.8)break;}
+    const logi=categorias.find(c=>c.categoria==='Logística / Estoque');
+    let of=null;for(const g of arr){if(g.vend>0&&g.qtd>=10&&g.taxa!=null){if(!of||g.taxa>of.taxa)of=g;}}
+    const li=[];
+    if(tp)li.push(`Produto mais crítico: <b>${esc(tp.nome)}</b> — ${fmtInt(tp.qtd)} peças (${pct(tp.qtd)}), ${fmtInt(tp.ocor)} ocorrências.`);
+    if(tpc)li.push(`Peça que mais falha: <b>${esc(tpc.nome)}</b> — ${fmtInt(tpc.qtd)} peças (${pct(tpc.qtd)}).`);
+    if(tc)li.push(`Categoria líder: <b>${esc(tc.categoria)}</b> — ${fmtInt(tc.qtd)} peças (${pct(tc.qtd)}).`);
+    li.push(`Pareto: <b>${fmtInt(n80)}</b> modelos concentram 80% das peças.`);
+    if(logi&&logi.qtd/totalQtd>=0.03)li.push(`<b>${pct(logi.qtd)}</b> das peças são Logística / Estoque (não-defeito).`);
+    if(of)li.push(`Maior taxa de assistência: <b>${esc(of.name)}</b> — ${fmtPct(of.taxa,2)}.`);
+    h+='<h2>Resumo executivo</h2><ul>'+li.map(t=>`<li>${t}</li>`).join('')+'</ul>';
+  }
+  // Por categoria de motivo
+  h+=tbl('Por categoria de motivo',
+    [{t:'Categoria'},{t:'Nº assist.',r:1},{t:'Peças',r:1},{t:'% peças',r:1}],
+    categorias.map(c=>[esc(c.categoria),fmtInt(c.nAssist),fmtInt(c.qtd),pct(c.qtd)]));
+  // Top 20 produtos
+  h+=tbl('Produtos com mais ocorrências (top 20)',
+    [{t:'Produto referência'},{t:'Código'},{t:'Nº assist.',r:1},{t:'Ocorr.',r:1},{t:'Peças',r:1},{t:'% peças',r:1}],
+    produtos.slice(0,20).map(p=>[esc(p.nome),esc(p.cod),fmtInt(p.nAssist),fmtInt(p.ocor),fmtInt(p.qtd),pct(p.qtd)]));
+  // Top 20 peças
+  h+=tbl('Peças com mais ocorrências (top 20)',
+    [{t:'Peça (produto da assistência)'},{t:'Motivo predominante'},{t:'Ocorr.',r:1},{t:'Peças',r:1},{t:'% peças',r:1}],
+    pecas.slice(0,20).map(p=>[esc(p.nome),esc(p.topMotivo),fmtInt(p.ocor),fmtInt(p.qtd),pct(p.qtd)]));
+  // Por modelo (top 30)
+  h+=tbl('Por modelo (top 30)',
+    [{t:'Modelo'},{t:'Fam.'},{t:'Nº assist.',r:1},{t:'Peças',r:1},{t:'% peças',r:1},{t:'Un. vend.',r:1},{t:'Taxa',r:1},{t:'Faturamento',r:1}],
+    arr.slice(0,30).map(g=>[esc(g.name),esc(g.famKey),fmtInt(g.nAssist),fmtInt(g.qtd),pct(g.qtd),g.vend>0?fmtInt(g.vend):'—',g.taxa==null?'—':fmtPct(g.taxa,2),g.fat>0?fmtBRL(g.fat):'—']));
+  // Por motivo (completo)
+  h+=tbl('Por motivo',
+    [{t:'Motivo'},{t:'Categoria'},{t:'Nº assist.',r:1},{t:'Peças',r:1},{t:'% peças',r:1}],
+    motivos.map(m=>[esc(m.motivo),esc(m.categoria),fmtInt(m.nAssist),fmtInt(m.qtd),pct(m.qtd)]));
+  h+='</body></html>';
+  const w=window.open('','_blank');
+  if(!w){alert('Permita pop-ups para gerar o relatório de impressão.');return;}
+  w.document.write(h);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>{try{w.print();}catch(e){}},300);
 }
 
 // Redistribution index between colors: shares of first-half avg vs second-half avg.
