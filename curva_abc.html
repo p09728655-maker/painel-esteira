@@ -4131,9 +4131,16 @@ function renderMaterialTab(){
   const famSel=document.getElementById('assist-fam');
   if(famSel){
     const famMap=new Map();
-    for(const a of MATERIAL){const k=a.cod.slice(0,3);if(!k)continue;if(!famMap.has(k))famMap.set(k,a.refName||k);}
+    for(const a of MATERIAL){const k=a.cod.slice(0,3);if(!k)continue;if(!famMap.has(k))famMap.set(k,[]);if(a.refName)famMap.get(k).push(a.refName);}
+    const CORES=/^(BRANCO|PRETO|OFF|WHITE|CINAMOMO|ROSA|AZUL|CINZA|NATURE|ACETINADO|NATURAL|REAL|VERDE|AMARELO|BEGE|CAFE|TABACO|FREIJO|CARVALHO|NOGUEIRA|IPE|AC)$/;
+    const famLabel=refs=>{
+      let s=_commonPrefixWords(refs)||(refs[0]||'');     // prefixo comum a todos os produtos da família
+      let w=s.split(/\s+/).filter(Boolean);
+      while(w.length>1&&CORES.test(w[w.length-1]))w.pop();// remove cor(es) ao final
+      return w.join(' ');
+    };
     const prev=famSel.value;
-    famSel.innerHTML='<option value="">Todas</option>'+[...famMap.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,v])=>`<option value="${k}">${k} · ${esc(_modNameFromRefs([v]).split(' ').slice(0,3).join(' ')||v)}</option>`).join('');
+    famSel.innerHTML='<option value="">Todas</option>'+[...famMap.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,refs])=>`<option value="${k}">${k} · ${esc(famLabel(refs)||k)}</option>`).join('');
     if(prev)famSel.value=prev;
   }
   const catSel=document.getElementById('assist-cat');
