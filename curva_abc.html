@@ -4228,7 +4228,7 @@ function renderMaterialTab(){
       const c=cls(g);
       const taxa=g.taxa==null?'<span style="color:var(--text-muted)">—</span>':fmtPct(g.taxa,2);
       const probCell=g.topCategoria
-        ?`${catBadge(g.topCategoria)}<span style="font-size:.72rem;color:var(--text-muted);margin-left:.3rem;">${esc(g.topMotivo)}</span>`
+        ?`<span onclick="event.stopPropagation();_assistSetCat('${g.topCategoria.replace(/'/g,"\\'")}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;" title="Filtrar por esta categoria">${catBadge(g.topCategoria)}<span style="font-size:.72rem;color:var(--text-muted);">${esc(g.topMotivo)}</span></span>`
         :'<span style="color:var(--text-muted)">—</span>';
       html+=`<tr onclick="_assistFocus('${g.key}')" style="cursor:pointer;">`
         +`<td>${esc(g.name)}${g.naCurva?'':' <span style="color:#fbbf24;font-size:.7rem;">(fora da curva)</span>'}</td>`
@@ -4304,6 +4304,11 @@ function _assistFocus(cod6){
   const s=document.getElementById('assist-search');if(s)s.value=cod6;
   const f=document.getElementById('assist-fam');if(f)f.value='';
   _assistView='overview';
+  renderMaterialTab();
+}
+function _assistSetCat(cat){
+  const c=document.getElementById('assist-cat');if(c)c.value=cat;
+  _assistView='detalhe';
   renderMaterialTab();
 }
 function _assistFiltered(){
