@@ -3875,12 +3875,15 @@ function buildModelos(){
       if(!codFull)continue;
       const key=codFull.slice(0,6);
       let m=models.get(key);
-      if(!m){m={key,cores:new Map(),totalMes:{},descs:[]};models.set(key,m);}
+      if(!m){m={key,cores:new Map(),totalMes:{},totalMesQ:{},descs:[]};models.set(key,m);}
       let c=m.cores.get(codFull);
-      if(!c){c={cod:codFull,desc:String(r[COL.DESC]||'').trim(),porMes:{}};m.cores.set(codFull,c);m.descs.push(c.desc);}
+      if(!c){c={cod:codFull,desc:String(r[COL.DESC]||'').trim(),porMes:{},porMesQ:{}};m.cores.set(codFull,c);m.descs.push(c.desc);}
       const fat=num(r,COL.FAT);
+      const qtd=num(r,COL.QTD);
       c.porMes[p.label]=(c.porMes[p.label]||0)+fat;
+      c.porMesQ[p.label]=(c.porMesQ[p.label]||0)+qtd;
       m.totalMes[p.label]=(m.totalMes[p.label]||0)+fat;
+      m.totalMesQ[p.label]=(m.totalMesQ[p.label]||0)+qtd;
     }
   }
   return {meses,models};
@@ -4193,8 +4196,10 @@ function renderModelosTab(){
   if(!cur){content.innerHTML='';if(verdEl)verdEl.innerHTML='';return;}
   const prefix=_commonPrefixWords(cur.descs);
   const colTotal=c=>meses.reduce((s,x)=>s+(c.porMes[x]||0),0);
+  const colTotalQ=c=>meses.reduce((s,x)=>s+(c.porMesQ[x]||0),0);
   const cores=[...cur.cores.values()].sort((a,b)=>colTotal(b)-colTotal(a));
-  const cell=v=>v?fmtBRL(v):'<span style="color:var(--text-muted)">—</span>';
+  // Cada célula mostra faturamento (R$) e, abaixo, a quantidade (un.)
+  const cell=(v,q)=>v?`${fmtBRL(v)}<span style="display:block;font-size:.68rem;color:var(--text-muted);font-weight:400;">${fmtInt(q||0)} un.</span>`:'<span style="color:var(--text-muted)">—</span>';
   // Tendência: média da 2ª metade vs 1ª metade da série da cor
   const trend=c=>{
     const half=Math.max(1,Math.floor(meses.length/2));
@@ -4212,9 +4217,10 @@ function renderModelosTab(){
   let html='<table class="mov-table"><thead><tr><th>Cor</th>'+meses.map(x=>`<th style="text-align:right">${x}</th>`).join('')+'<th style="text-align:right">Total</th><th style="text-align:center">Tend.</th></tr></thead><tbody>';
   for(const c of cores){
     const cl=_colorLabel(c.desc,prefix);
-    html+=`<tr><td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}</td><td style="text-align:center;font-weight:700;">${trend(c)}</td></tr>`;
+    html+=`<tr><td title="${c.cod} — ${String(c.desc).replace(/"/g,'&quot;')}"><span style="font-family:monospace;font-size:.7rem;color:var(--text-muted)">${c.cod.slice(6)||c.cod}</span> ${cl}</td>`+meses.map(x=>`<td style="text-align:right;font-size:.78rem;">${cell(c.porMes[x],c.porMesQ[x])}</td>`).join('')+`<td style="text-align:right;font-weight:700;">${fmtBRL(colTotal(c))}<span style="display:block;font-size:.68rem;color:var(--text-muted);font-weight:400;">${fmtInt(colTotalQ(c))} un.</span></td><td style="text-align:center;font-weight:700;">${trend(c)}</td></tr>`;
   }
-  html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}</td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}</td><td></td></tr>`;
+  const totGeralQ=meses.reduce((s,x)=>s+(cur.totalMesQ[x]||0),0);
+  html+=`<tr style="border-top:2px solid var(--accent);"><td><strong>TOTAL ${prefix}</strong></td>`+meses.map(x=>`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totalMes[x]||0)}<span style="display:block;font-size:.68rem;color:var(--text-muted);font-weight:600;">${fmtInt(cur.totalMesQ[x]||0)} un.</span></td>`).join('')+`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(cur.totGeral)}<span style="display:block;font-size:.68rem;color:var(--text-muted);font-weight:600;">${fmtInt(totGeralQ)} un.</span></td><td></td></tr>`;
   html+='</tbody></table>';
   content.innerHTML=html;
   // Galeria grande de fotos por cor — ocupa o espaço livre acima da tabela
