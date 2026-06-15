@@ -2345,7 +2345,9 @@ async function progCarregarSemana(){
     dias.forEach((x,i)=>{
       const br=fmtBR(x);
       const itens=tudo.filter(t=>t.data===br);
+      // sábado (i===5) só aparece em caso extraordinário (quando há programação salva)
       if(itens.length===0){
+        if(i===5)return;
         html+=`<tr><td>${nomes[i]}</td><td class="td-codigo">${br}</td><td colspan="9" style="color:var(--txt2)">— sem programação salva —</td><td></td></tr>`;
         return;
       }
