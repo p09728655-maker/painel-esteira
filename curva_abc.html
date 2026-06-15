@@ -4038,6 +4038,12 @@ function buildAssistByModel(rows){
     g.vend=info?info.vend:0;
     g.nAssist=g.assistIds.size||g.linhas.length;
     g.taxa=g.vend>0?g.qtd/g.vend*100:null; // peças com defeito / unidades vendidas
+    // top motivo e categoria para o modelo
+    const mMap=new Map();
+    g.linhas.forEach(l=>{const k=l.motivo||'';mMap.set(k,(mMap.get(k)||0)+l.qtd);});
+    let topMot='',topMotQ=0;for(const [k,v] of mMap){if(v>topMotQ){topMotQ=v;topMot=k;}}
+    g.topMotivo=topMot;
+    g.topCategoria=_motivoCategoria(topMot);
     return g;
   }).sort((a,b)=>b.qtd-a.qtd);
   const totalQtd=rows.reduce((s,x)=>s+x.qtd,0);
@@ -4126,7 +4132,7 @@ function renderMaterialTab(){
   if(!PERIODOS.length){content.innerHTML='<p style="color:var(--text-muted);padding:2rem;">Carregue a planilha.</p>';return;}
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const catColor=c=>({'Avaria / Quebra':'#f87171','Acabamento':'#fbbf24','Divergência':'#a78bfa','Faltante':'#60a5fa','Logística / Estoque':'#34d399','Furação / Montagem':'#f472b6','Componente':'#22d3ee','Sem motivo':'#71717a'}[c]||'#94a3b8');
-  const catBadge=c=>`<span style="display:inline-block;padding:.05rem .45rem;border-radius:999px;font-size:.7rem;font-weight:700;color:#0a0a0b;background:${catColor(c)};">${esc(c)}</span>`;
+  const catBadge=c=>`<span style="display:inline-block;vertical-align:middle;padding:.05rem .45rem;border-radius:999px;font-size:.7rem;font-weight:700;color:#0a0a0b;background:${catColor(c)};">${esc(c)}</span>`;
   // popula filtros (famílias + categorias), preservando a seleção atual
   const famSel=document.getElementById('assist-fam');
   if(famSel){
@@ -4173,7 +4179,15 @@ function renderMaterialTab(){
     +(filtroAtivo?` · <span style="color:var(--accent,#FF5C1F)">filtro ativo</span>`:'')+`</div>`;
   if(!rows.length){content.innerHTML=html+'<p style="color:var(--text-muted);padding:1.5rem;">Nenhuma assistência para o filtro atual.</p>';return;}
   // helpers de visualização
-  const cls=(()=>{let cum=0;return q=>{cum+=q;const p=totalQtd>0?cum/totalQtd*100:0;return p<=80?'A':p<=95?'B':'C';};})();
+  // ABC de assistências calculado sobre o universo COMPLETO (sem filtro), para a classe não mudar com o filtro
+  const _clsMap=(()=>{
+    const full=buildAssistByModel(MATERIAL);
+    const tot=full.totalQtd;
+    let cum=0;const map=new Map();
+    for(const g of full.arr){cum+=g.qtd;const p=tot>0?cum/tot*100:0;map.set(g.key,p<=80?'A':p<=95?'B':'C');}
+    return map;
+  })();
+  const cls=g=>_clsMap.get(g.key)||'C';
   const clsBadge=c=>`<span style="font-weight:700;color:${c==='A'?'#4ade80':c==='B'?'#fbbf24':'#f87171'}">${c}</span>`;
   const bar=(label,val,max,color,right,onclick)=>{
     const w=max>0?Math.max(2,val/max*100):0;
@@ -4209,10 +4223,13 @@ function renderMaterialTab(){
     html+='<p style="color:var(--text-muted);font-size:.78rem;margin:-.3rem 0 .6rem;">Clique num modelo para focar tudo nele.</p>';
     html+='<div style="overflow-x:auto;"><table class="mov-table"><thead><tr>'
       +'<th>Modelo</th><th>Família</th><th style="text-align:right">Nº assist.</th><th style="text-align:right">Peças</th><th style="text-align:right">% peças</th>'
-      +'<th style="text-align:center">Classe</th><th style="text-align:right">Un. vendidas</th><th style="text-align:right">Taxa assist.</th><th style="text-align:right">Faturamento</th><th style="text-align:right">% fat.</th></tr></thead><tbody>';
+      +'<th style="text-align:center">Classe</th><th>Principal problema</th><th style="text-align:right">Un. vendidas</th><th style="text-align:right">Taxa assist.</th><th style="text-align:right">Faturamento</th><th style="text-align:right">% fat.</th></tr></thead><tbody>';
     for(const g of arr){
-      const c=cls(g.qtd);
+      const c=cls(g);
       const taxa=g.taxa==null?'<span style="color:var(--text-muted)">—</span>':fmtPct(g.taxa,2);
+      const probCell=g.topCategoria
+        ?`${catBadge(g.topCategoria)}<span style="font-size:.72rem;color:var(--text-muted);margin-left:.3rem;">${esc(g.topMotivo)}</span>`
+        :'<span style="color:var(--text-muted)">—</span>';
       html+=`<tr onclick="_assistFocus('${g.key}')" style="cursor:pointer;">`
         +`<td>${esc(g.name)}${g.naCurva?'':' <span style="color:#fbbf24;font-size:.7rem;">(fora da curva)</span>'}</td>`
         +`<td style="font-family:monospace;font-size:.72rem;color:var(--text-muted)">${esc(g.famKey)}</td>`
@@ -4220,6 +4237,7 @@ function renderMaterialTab(){
         +`<td style="text-align:right;font-weight:700;">${fmtInt(g.qtd)}</td>`
         +`<td style="text-align:right;">${pct(g.qtd)}</td>`
         +`<td style="text-align:center;">${clsBadge(c)}</td>`
+        +`<td style="white-space:nowrap;">${probCell}</td>`
         +`<td style="text-align:right;">${g.vend>0?fmtInt(g.vend):'<span style="color:var(--text-muted)">—</span>'}</td>`
         +`<td style="text-align:right;">${taxa}</td>`
         +`<td style="text-align:right;font-size:.8rem;">${g.fat>0?fmtBRL(g.fat):'<span style="color:var(--text-muted)">—</span>'}</td>`
@@ -4227,7 +4245,7 @@ function renderMaterialTab(){
     }
     html+=`<tr style="border-top:2px solid var(--accent);"><td colspan="2"><strong>TOTAL</strong></td>`
       +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtInt(totalAssist||rows.length)}</td>`
-      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtInt(totalQtd)}</td><td></td><td></td><td></td><td></td>`
+      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtInt(totalQtd)}</td><td></td><td></td><td></td><td></td><td></td>`
       +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(grandFat)}</td><td></td></tr>`;
     html+='</tbody></table></div>';
   } else if(_assistView==='produtos'){
@@ -4267,7 +4285,7 @@ function renderMaterialTab(){
       html+=`<tr><td style="font-family:monospace;font-size:.72rem;color:var(--text-muted)">${esc(a.assist)}</td>`
         +`<td style="font-family:monospace;font-size:.72rem;">${esc(a.cod)}</td>`
         +`<td style="font-size:.8rem;">${esc(a.refName)}</td><td style="font-size:.8rem;">${esc(a.parte)}</td>`
-        +`<td style="font-size:.78rem;">${esc(a.motivo)} ${catBadge(_motivoCategoria(a.motivo))}</td>`
+        +`<td style="font-size:.78rem;white-space:nowrap;"><span style="display:inline-flex;align-items:center;gap:.35rem;">${esc(a.motivo)}${catBadge(_motivoCategoria(a.motivo))}</span></td>`
         +`<td style="text-align:right;">${fmtInt(a.qtd)}</td></tr>`;
     }
     html+='</tbody></table></div>';
