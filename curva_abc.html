@@ -4252,10 +4252,16 @@ function renderMaterialTab(){
         +`<td style="text-align:right;font-size:.8rem;">${g.fat>0?fmtBRL(g.fat):'<span style="color:var(--text-muted)">—</span>'}</td>`
         +`<td style="text-align:right;">${g.fat>0?pctFat(g.fat):'—'}</td></tr>`;
     }
+    const sumFatArr=arr.reduce((s,g)=>s+(g.fat||0),0);
+    const sumVendArr=arr.reduce((s,g)=>s+(g.vend||0),0);
     html+=`<tr style="border-top:2px solid var(--accent);"><td colspan="2"><strong>TOTAL</strong></td>`
       +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtInt(totalAssist||rows.length)}</td>`
-      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtInt(totalQtd)}</td><td></td><td></td><td></td><td></td><td></td>`
-      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtBRL(grandFat)}</td><td></td></tr>`;
+      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${fmtInt(totalQtd)}</td>`
+      +`<td></td><td></td><td></td>`
+      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${sumVendArr>0?fmtInt(sumVendArr):''}</td>`
+      +`<td></td>`
+      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${sumFatArr>0?fmtBRL(sumFatArr):''}</td>`
+      +`<td style="text-align:right;font-weight:800;color:var(--accent);">${sumFatArr>0?pctFat(sumFatArr):''}</td></tr>`;
     html+='</tbody></table></div>';
   } else if(_assistView==='produtos'){
     html+=`<div class="section-title">Produtos com mais ocorrências${produtos.length>TOPN?` — top ${TOPN} de ${fmtInt(produtos.length)}`:''}</div>`;
