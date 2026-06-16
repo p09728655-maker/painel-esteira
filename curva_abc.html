@@ -1012,17 +1012,17 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
     <!-- ASSISTÊNCIAS TÉCNICAS -->
     <section id="sec-material" style="display:none;">
       <div class="section-title">Assistências por Modelo — Relatório × Curva ABC</div>
-      <p style="color:var(--text-muted);font-size:.8rem;margin:.3rem 0 1rem;">Assistências técnicas agrupadas por modelo, cruzadas pelo <strong>código</strong> do produto com a Curva ABC. Filtre por família/produto e navegue pelas visões; clique num modelo para ver tudo sobre ele.</p>
-      <div class="mov-header" style="flex-wrap:wrap;gap:.6rem;align-items:center;">
+      <p style="color:var(--text-muted);font-size:.8rem;margin:.2rem 0 .6rem;">Assistências técnicas agrupadas por modelo, cruzadas pelo <strong>código</strong> do produto com a Curva ABC. Filtre por família/produto e navegue pelas visões; clique num modelo para ver tudo sobre ele.</p>
+      <div class="mov-header" style="flex-wrap:wrap;gap:.5rem;align-items:center;">
         <span class="mov-label">Família:</span>
         <select id="assist-fam" onchange="renderMaterialTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;max-width:280px;"><option value="">Todas</option></select>
-        <input id="assist-search" type="text" placeholder="Buscar produto, peça ou código..." oninput="renderMaterialTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;min-width:220px;">
+        <input id="assist-search" type="text" placeholder="Buscar produto, peça ou código..." oninput="renderMaterialTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;min-width:200px;flex:1 1 180px;">
         <span class="mov-label">Motivo:</span>
         <select id="assist-cat" onchange="renderMaterialTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;"><option value="">Todos</option></select>
         <button onclick="_assistClear()" style="background:var(--surface2,#1e293b);color:var(--text-muted);border:1px solid var(--border,#334155);border-radius:6px;padding:.4rem .7rem;font-size:.8rem;cursor:pointer;font-family:inherit;">✕ Limpar</button>
         <button onclick="printAssist()" style="margin-left:auto;background:var(--accent,#FF5C1F);color:#0a0a0b;border:none;border-radius:6px;padding:.45rem .9rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">🖨️ Imprimir / PDF</button>
       </div>
-      <div id="assist-pills" style="display:flex;gap:.4rem;flex-wrap:wrap;margin:.6rem 0 1rem;"></div>
+      <div id="assist-pills" style="display:flex;gap:.4rem;flex-wrap:wrap;margin:.55rem 0 .8rem;"></div>
       <div id="mat-content"></div>
     </section>
 
