@@ -2231,6 +2231,7 @@ async function carregarDoSheets(spreadsheetId){
 }
 
 let _lastSheetId='';
+const DEFAULT_SHEET_URL='https://docs.google.com/spreadsheets/d/1N6H19hnqip1H8lmKUWMvQ0y6NHs-lSpiUQJNH1K3dZk/edit';
 async function iniciarCargaSheets(){
   const url=(document.getElementById('gs-url').value||'').trim();
   if(!url){showImportError('Cole o link da planilha do Google Sheets');return;}
@@ -2248,7 +2249,11 @@ async function iniciarCargaSheets(){
   finally{btn.disabled=false;prog.style.display='none';}
 }
 
-function recarregarSheets(){iniciarCargaSheets();}
+function recarregarSheets(){
+  const el=document.getElementById('gs-url');
+  if(el&&!el.value.trim())el.value=localStorage.getItem('gs_last_url')||DEFAULT_SHEET_URL;
+  iniciarCargaSheets();
+}
 function showImportError(msg){importError.textContent='❌ '+msg;importError.style.display='block';}
 
 function finalizarCargaSheets(){
@@ -4854,7 +4859,7 @@ function renderModAudit(){
 }
 (function(){const d=localStorage.getItem('mod_debug')==='1';const chk=document.getElementById('mod-debug-chk');if(chk)chk.checked=d;})();
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
-(function(){const u=localStorage.getItem('gs_last_url');if(u){const el=document.getElementById('gs-url');if(el)el.value=u;}})();
+(function(){const u=localStorage.getItem('gs_last_url')||DEFAULT_SHEET_URL;const el=document.getElementById('gs-url');if(el)el.value=u;})();
 const _gsUrlEl=document.getElementById('gs-url');
 if(_gsUrlEl)_gsUrlEl.addEventListener('keydown',e=>{if(e.key==='Enter')iniciarCargaSheets();});
 
