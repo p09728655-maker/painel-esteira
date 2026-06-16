@@ -1020,6 +1020,8 @@ footer{background:var(--card);border-top:1px solid var(--border);padding:.6rem 1
         <span class="mov-label">Motivo:</span>
         <select id="assist-cat" onchange="renderMaterialTab()" style="padding:.4rem .6rem;background:var(--surface2,#1e293b);color:var(--text,#e2e8f0);border:1px solid var(--border,#334155);border-radius:6px;font-family:inherit;font-size:.85rem;"><option value="">Todos</option></select>
         <button onclick="_assistClear()" style="background:var(--surface2,#1e293b);color:var(--text-muted);border:1px solid var(--border,#334155);border-radius:6px;padding:.4rem .7rem;font-size:.8rem;cursor:pointer;font-family:inherit;">✕ Limpar</button>
+        <label title="Exclui Logística / Estoque (ex.: estoque regulador) — mostra só defeito de qualidade" style="display:inline-flex;align-items:center;gap:.3rem;font-size:.8rem;color:var(--text-muted);cursor:pointer;user-select:none;"><input type="checkbox" id="assist-qual" onchange="renderMaterialTab()" style="accent-color:var(--accent,#FF5C1F);cursor:pointer;"> 🎯 Só qualidade</label>
+        <label title="Oculta modelos fora da Curva ABC (peças/ferragens sem venda, ex.: parafusos)" style="display:inline-flex;align-items:center;gap:.3rem;font-size:.8rem;color:var(--text-muted);cursor:pointer;user-select:none;"><input type="checkbox" id="assist-curva" onchange="renderMaterialTab()" style="accent-color:var(--accent,#FF5C1F);cursor:pointer;"> 📈 Só na curva</label>
         <button onclick="printAssist()" style="margin-left:auto;background:var(--accent,#FF5C1F);color:#0a0a0b;border:none;border-radius:6px;padding:.45rem .9rem;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;">🖨️ Imprimir / PDF</button>
       </div>
       <div id="assist-pills" style="display:flex;gap:.4rem;flex-wrap:wrap;margin:.55rem 0 .8rem;"></div>
@@ -4171,14 +4173,17 @@ function renderMaterialTab(){
   }
   // chip de filtro ativo + contadores
   const fam=famSel?famSel.value:'',q=document.getElementById('assist-search')?document.getElementById('assist-search').value.trim():'',cat=catSel?catSel.value:'';
-  const filtroAtivo=fam||q||cat;
+  const qualOn=!!(document.getElementById('assist-qual')||{}).checked, curvaOn=!!(document.getElementById('assist-curva')||{}).checked;
+  const filtroAtivo=fam||q||cat||qualOn||curvaOn;
   const _baseMeses=PERIODOS.map(p=>p.label);
   const _baseTxt=_baseMeses.length?`${_baseMeses[0]}–${_baseMeses[_baseMeses.length-1]} (${_baseMeses.length} ${_baseMeses.length>1?'meses':'mês'})`:'';
   let html=`<div style="font-size:.82rem;color:var(--text-muted);margin-bottom:.9rem;">`
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(totalAssist||rows.length)}</strong> assistências · `
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(totalQtd)}</strong> peças · `
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(arr.length)}</strong> modelos`
-    +(filtroAtivo?` · <span style="color:var(--accent,#FF5C1F)">filtro ativo</span>`:'')+`</div>`;
+    +(qualOn?` · <span style="color:#34d399">🎯 só qualidade</span>`:'')
+    +(curvaOn?` · <span style="color:#34d399">📈 só na curva</span>`:'')
+    +(filtroAtivo&&!qualOn&&!curvaOn?` · <span style="color:var(--accent,#FF5C1F)">filtro ativo</span>`:(filtroAtivo&&(fam||q||cat)?` · <span style="color:var(--accent,#FF5C1F)">filtro ativo</span>`:''))+`</div>`;
   if(_baseTxt)html+=`<div style="font-size:.75rem;color:var(--text-muted);margin:-.6rem 0 .9rem;">📊 Base de venda p/ taxa de assistência: <strong style="color:var(--text,#e2e8f0)">${esc(_baseTxt)}</strong> · todos os meses carregados</div>`;
   if(!rows.length){content.innerHTML=html+'<p style="color:var(--text-muted);padding:1.5rem;">Nenhuma assistência para o filtro atual.</p>';return;}
   // helpers de visualização
@@ -4301,6 +4306,8 @@ function _assistClear(){
   const f=document.getElementById('assist-fam');if(f)f.value='';
   const s=document.getElementById('assist-search');if(s)s.value='';
   const c=document.getElementById('assist-cat');if(c)c.value='';
+  const ql=document.getElementById('assist-qual');if(ql)ql.checked=false;
+  const cv=document.getElementById('assist-curva');if(cv)cv.checked=false;
   renderMaterialTab();
 }
 function _assistFocus(cod6){
@@ -4318,9 +4325,15 @@ function _assistFiltered(){
   const fam=(document.getElementById('assist-fam')||{}).value||'';
   const q=(((document.getElementById('assist-search')||{}).value)||'').trim().toLowerCase();
   const cat=(document.getElementById('assist-cat')||{}).value||'';
+  const qual=!!(document.getElementById('assist-qual')||{}).checked;
+  const curva=!!(document.getElementById('assist-curva')||{}).checked;
+  let salesKeys=null;
+  if(curva){salesKeys=new Set();const {models}=buildModelos();for(const k of models.keys())salesKeys.add(k);}
   return MATERIAL.filter(a=>{
     if(fam&&a.cod.slice(0,3)!==fam)return false;
     if(cat&&_motivoCategoria(a.motivo)!==cat)return false;
+    if(qual&&_motivoCategoria(a.motivo)==='Logística / Estoque')return false;
+    if(curva&&!salesKeys.has(a.cod.slice(0,6)))return false;
     if(q){const hay=(String(a.refName||'')+' '+String(a.parte||'')+' '+String(a.cod||'')+' '+String(a.motivo||'')).toLowerCase();if(!hay.includes(q))return false;}
     return true;
   });
