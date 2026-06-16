@@ -4111,11 +4111,12 @@ function _assistResumoExec(d,pct,esc,catBadge){
   let ofensor=null;
   for(const g of arr){if(g.vend>0&&g.qtd>=10&&g.taxa!=null){if(!ofensor||g.taxa>ofensor.taxa)ofensor=g;}}
   const ins=[];
-  ins.push(`<strong>${fmtInt(totalAssist||0)}</strong> assistências geraram <strong>${fmtInt(totalQtd)}</strong> trocas de peça em <strong>${fmtInt(arr.length)}</strong> modelos.`);
-  if(topProd)ins.push(`Produto mais crítico: <strong>${esc(topProd.nome)}</strong> — ${fmtInt(topProd.qtd)} peças (${pct(topProd.qtd)}) em ${fmtInt(topProd.ocor)} ocorrências.`);
-  if(topPeca)ins.push(`Peça que mais falha: <strong>${esc(topPeca.nome)}</strong> — ${fmtInt(topPeca.qtd)} peças (${pct(topPeca.qtd)}), motivo predominante ${catBadge(topPeca.topMotivo)}.`);
-  if(topCat)ins.push(`Categoria de motivo líder: ${catBadge(topCat.categoria)} com ${fmtInt(topCat.qtd)} peças (${pct(topCat.qtd)}).`);
-  ins.push(`Concentração (Pareto): <strong>${fmtInt(n80)}</strong> modelos (${pareto80}) concentram 80% das peças.`);
+  const pl=(n,s,p)=>fmtInt(n)+' '+(Math.round(n)===1?s:(p||s+'s'));
+  ins.push(`<strong>${fmtInt(totalAssist||0)}</strong> ${(totalAssist||0)===1?'assistência gerou':'assistências geraram'} <strong>${fmtInt(totalQtd)}</strong> ${totalQtd===1?'troca de peça':'trocas de peça'} em <strong>${fmtInt(arr.length)}</strong> ${arr.length===1?'modelo':'modelos'}.`);
+  if(topProd)ins.push(`Produto mais crítico: <strong>${esc(topProd.nome)}</strong> — ${pl(topProd.qtd,'peça','peças')} (${pct(topProd.qtd)}) em ${pl(topProd.ocor,'ocorrência','ocorrências')}.`);
+  if(topPeca)ins.push(`Peça que mais falha: <strong>${esc(topPeca.nome)}</strong> — ${pl(topPeca.qtd,'peça','peças')} (${pct(topPeca.qtd)}), motivo predominante ${catBadge(topPeca.topMotivo)}.`);
+  if(topCat)ins.push(`Categoria de motivo líder: ${catBadge(topCat.categoria)} com ${pl(topCat.qtd,'peça','peças')} (${pct(topCat.qtd)}).`);
+  if(arr.length>1)ins.push(`Concentração (Pareto): <strong>${fmtInt(n80)}</strong> ${n80===1?'modelo':'modelos'} (${pareto80}) ${n80===1?'concentra':'concentram'} 80% das peças.`);
   if(logiShare>=3)ins.push(`Atenção: <strong>${fmtPct(logiShare)}</strong> das peças são <strong>Logística / Estoque</strong> (ex.: estoque regulador) — não são defeito de qualidade.`);
   if(ofensor)ins.push(`Maior taxa de assistência: <strong>${esc(ofensor.name)}</strong> — ${fmtPct(ofensor.taxa,2)} (peças ÷ unidades vendidas).`);
   return `<div style="background:var(--surface2,#1e293b);border:1px solid var(--border,#334155);border-left:4px solid var(--accent,#FF5C1F);border-radius:8px;padding:1rem 1.2rem;margin-bottom:1.2rem;">`
