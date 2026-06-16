@@ -4172,11 +4172,14 @@ function renderMaterialTab(){
   // chip de filtro ativo + contadores
   const fam=famSel?famSel.value:'',q=document.getElementById('assist-search')?document.getElementById('assist-search').value.trim():'',cat=catSel?catSel.value:'';
   const filtroAtivo=fam||q||cat;
+  const _baseMeses=PERIODOS.map(p=>p.label);
+  const _baseTxt=_baseMeses.length?`${_baseMeses[0]}–${_baseMeses[_baseMeses.length-1]} (${_baseMeses.length} ${_baseMeses.length>1?'meses':'mês'})`:'';
   let html=`<div style="font-size:.82rem;color:var(--text-muted);margin-bottom:.9rem;">`
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(totalAssist||rows.length)}</strong> assistências · `
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(totalQtd)}</strong> peças · `
     +`<strong style="color:var(--text,#e2e8f0)">${fmtInt(arr.length)}</strong> modelos`
     +(filtroAtivo?` · <span style="color:var(--accent,#FF5C1F)">filtro ativo</span>`:'')+`</div>`;
+  if(_baseTxt)html+=`<div style="font-size:.75rem;color:var(--text-muted);margin:-.6rem 0 .9rem;">📊 Base de venda p/ taxa de assistência: <strong style="color:var(--text,#e2e8f0)">${esc(_baseTxt)}</strong> · todos os meses carregados</div>`;
   if(!rows.length){content.innerHTML=html+'<p style="color:var(--text-muted);padding:1.5rem;">Nenhuma assistência para o filtro atual.</p>';return;}
   // helpers de visualização
   // ABC de assistências calculado sobre o universo COMPLETO (sem filtro), para a classe não mudar com o filtro
