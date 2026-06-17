@@ -869,15 +869,17 @@ td.td-actions { width: 80px; text-align: right; }
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span class="prog-semana-periodo" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2)">
             De:
-            <input type="date" id="prog-semana-ini" onchange="progCarregarSemana(true)"
-              title="Data inicial do período"
-              style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:6px;font-size:13px;font-family:'JetBrains Mono',monospace">
+            <input type="text" id="prog-semana-ini" placeholder="DD/MM/AA" maxlength="8" inputmode="numeric"
+              title="Data inicial do período (DD/MM/AA)"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:6px;font-size:13px;font-family:'JetBrains Mono',monospace;width:90px"
+              oninput="progMascaraData(this)">
           </span>
           <span class="prog-semana-periodo" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2)">
             Até:
-            <input type="date" id="prog-semana-fim" onchange="progCarregarSemana(true)"
-              title="Data final do período"
-              style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:6px;font-size:13px;font-family:'JetBrains Mono',monospace">
+            <input type="text" id="prog-semana-fim" placeholder="DD/MM/AA" maxlength="8" inputmode="numeric"
+              title="Data final do período (DD/MM/AA)"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:6px;font-size:13px;font-family:'JetBrains Mono',monospace;width:90px"
+              oninput="progMascaraData(this)">
           </span>
           <button class="btn btn-outline btn-sm" onclick="progCarregarSemana(true)" title="Atualizar o resumo com o período escolhido">↻ Atualizar</button>
           <button class="btn btn-outline btn-sm" onclick="progImprimirSemana()" style="border-color:var(--txt2);color:var(--txt2)">🖨 Imprimir</button>
@@ -2348,7 +2350,9 @@ async function progCarregarSemana(usarPeriodo){
   const inpFim=document.getElementById('prog-semana-fim');
   let iniISO,fimISO;
   if(usarPeriodo&&inpIni.value&&inpFim.value){
-    iniISO=inpIni.value;fimISO=inpFim.value;
+    iniISO=progParseDDMMYY(inpIni.value);
+    fimISO=progParseDDMMYY(inpFim.value);
+    if(!iniISO||!fimISO)return progToast('Data inválida. Use DD/MM/AA.','err');
   }else{
     const dataISO=progGarantirData();
     if(!dataISO)return progToast('Selecione a data.','err');
@@ -2358,7 +2362,8 @@ async function progCarregarSemana(usarPeriodo){
     const sab=new Date(seg);sab.setDate(seg.getDate()+5);
     iniISO=seg.toISOString().slice(0,10);
     fimISO=sab.toISOString().slice(0,10);
-    inpIni.value=iniISO;inpFim.value=fimISO;
+    const fmt=iso=>{const[y,m,dd]=iso.split('-');return`${dd}/${m}/${y.slice(2)}`;};
+    inpIni.value=fmt(iniISO);inpFim.value=fmt(fimISO);
   }
   const ini=new Date(iniISO+'T12:00:00');
   const fim=new Date(fimISO+'T12:00:00');
@@ -2451,6 +2456,22 @@ async function progCarregarSemana(usarPeriodo){
     document.getElementById('prog-card-semana').style.display='block';
     status.textContent='';
   }catch(e){status.textContent='';progToast('Erro ao carregar semana: '+e.message,'err');}
+}
+function progMascaraData(inp){
+  let v=inp.value.replace(/\D/g,'');
+  if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
+  if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5,7);
+  inp.value=v;
+}
+function progParseDDMMYY(s){
+  // aceita DD/MM/AA ou DD/MM/AAAA
+  const p=s.split('/');
+  if(p.length!==3)return null;
+  let [d,m,a]=p.map(Number);
+  if(a<100)a+=2000;
+  const dt=new Date(a,m-1,d,12,0,0);
+  if(isNaN(dt)||dt.getDate()!==d||dt.getMonth()!==m-1)return null;
+  return dt.toISOString().slice(0,10);
 }
 function progFecharSemana(){document.getElementById('prog-card-semana').style.display='none';}
 function progImprimirSemana(){
