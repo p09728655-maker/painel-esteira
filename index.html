@@ -545,6 +545,7 @@ td.td-actions { width: 80px; text-align: right; }
   body.print-semana #prog-card-semana { display: block !important; page-break-inside: avoid; }
   body.print-semana #prog-semana-body { overflow: visible !important; }
   body.print-semana .prog-semana-periodo { display: none !important; }
+  body.print-semana #semana-sim-row { display: none !important; }
   /* o resumo semanal pode passar de uma página; o detalhamento por dia pode quebrar */
   body.print-semana #prog-card-semana { page-break-inside: auto; }
   .semana-detalhe-dia { page-break-inside: avoid; }
@@ -885,6 +886,23 @@ td.td-actions { width: 80px; text-align: right; }
           <button class="btn btn-outline btn-sm" onclick="progImprimirSemana()" style="border-color:var(--txt2);color:var(--txt2)">🖨 Imprimir</button>
           <button class="btn btn-outline btn-sm" onclick="progFecharSemana()">✕ Fechar</button>
         </div>
+      </div>
+      <div id="semana-sim-row" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:13px">
+        <span style="color:var(--txt2);font-weight:600;font-size:11px;letter-spacing:.08em">SIMULAR:</span>
+        <label style="display:inline-flex;align-items:center;gap:6px;color:var(--txt2)">
+          Vel. (m/min)
+          <input type="number" id="semana-sim-vel" placeholder="—" min="0" step="0.5"
+            style="width:72px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:5px 7px;font-size:13px;font-family:'JetBrains Mono',monospace"
+            oninput="progSemanaSimAtualizar()">
+        </label>
+        <label style="display:inline-flex;align-items:center;gap:6px;color:var(--txt2)">
+          Entre pç (mm)
+          <input type="number" id="semana-sim-ep" placeholder="—" min="0" step="1"
+            style="width:72px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:5px 7px;font-size:13px;font-family:'JetBrains Mono',monospace"
+            oninput="progSemanaSimAtualizar()">
+        </label>
+        <span id="semana-sim-badge" style="display:none;color:var(--warn);font-size:12px;font-weight:600">● SIMULAÇÃO ATIVA</span>
+        <button class="btn btn-outline btn-sm" id="semana-sim-limpar" onclick="progSemanaSimLimpar()" style="display:none;border-color:var(--txt2);color:var(--txt2)">Limpar sim.</button>
       </div>
       <div id="prog-semana-body" style="overflow-x:auto"></div>
     </div>
@@ -2344,8 +2362,26 @@ async function progCarregarProgramacao(){
     progToast('Programação carregada!','ok');
   }catch(e){status.textContent='';progToast('Erro ao carregar: '+e.message,'err');}
 }
+let _semanaCache=null;
+function progSemanaSimAtualizar(){
+  const vel=document.getElementById('semana-sim-vel')?.value||'';
+  const ep=document.getElementById('semana-sim-ep')?.value||'';
+  const ativa=vel!==''||ep!=='';
+  const badge=document.getElementById('semana-sim-badge');
+  const limpar=document.getElementById('semana-sim-limpar');
+  if(badge)badge.style.display=ativa?'inline':'none';
+  if(limpar)limpar.style.display=ativa?'inline-flex':'none';
+  if(_semanaCache)progCarregarSemana(true,true);
+}
+function progSemanaSimLimpar(){
+  const vEl=document.getElementById('semana-sim-vel');
+  const eEl=document.getElementById('semana-sim-ep');
+  if(vEl)vEl.value='';
+  if(eEl)eEl.value='';
+  progSemanaSimAtualizar();
+}
 // Resumo da semana (segunda a sábado da semana da data selecionada)
-async function progCarregarSemana(usarPeriodo){
+async function progCarregarSemana(usarPeriodo,usarCache){
   const inpIni=document.getElementById('prog-semana-ini');
   const inpFim=document.getElementById('prog-semana-fim');
   let iniISO,fimISO;
@@ -2374,13 +2410,18 @@ async function progCarregarSemana(usarPeriodo){
   status.textContent='Carregando semana...';
   try{
     // sem o parâmetro de data o backend devolve todas as datas salvas
-    const tudo=await progApiFetch(`${getAppsScriptURL()}?acao=getProgramacao`)||[];
+    const tudo=usarCache&&_semanaCache?_semanaCache:(await progApiFetch(`${getAppsScriptURL()}?acao=getProgramacao`)||[]);
+    if(!usarCache)_semanaCache=tudo;
     const fmtBR=x=>`${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
     const nomesSem=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
     const detalhes=[]; // produtos a embalar por dia
     let html='<table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Produtos</th><th style="text-align:right">Caixas</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Cx/h</th><th style="text-align:right">Vel. (m/min)</th><th style="text-align:right">Tempo prod.</th><th style="text-align:right">Troca</th><th>Fim previsto</th><th style="text-align:right">H. extra / Folga</th><th></th></tr></thead><tbody>';
     let totCx=0,totKg=0,totPt=0,totExtra=0,totFolga=0,totTroca=0,totTempo=0,totVelCxProd=0;
     const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
+    const simVel=parseFloat(document.getElementById('semana-sim-vel')?.value)||0;
+    const simEpRaw=document.getElementById('semana-sim-ep')?.value;
+    const simEp=(simEpRaw!==''&&simEpRaw!=null)?parseFloat(simEpRaw):null;
+    const simAtiva=simVel>0||simEp!==null;
     dias.forEach((x)=>{
       const br=fmtBR(x);
       const wd=x.getDay();
@@ -2396,12 +2437,14 @@ async function progCarregarSemana(usarPeriodo){
       const cx=itens.reduce((s,t)=>s+(t.qtd_cx||0),0);
       const kg=itens.reduce((s,t)=>s+((parseFloat(t.pb)||0)*(t.qtd_cx||0)),0);
       const pt=itens.reduce((s,t)=>s+((parseFloat(t.pontos)||0)*(t.qtd_cx||0)),0);
-      // tempo de produção de cada item: usa o salvo; se faltar, calcula por vel/medida/entre peças (com fadiga)
+      // tempo de produção de cada item: usa o salvo; se simulação ativa, recalcula com os valores simulados
       const fad=progGetFadiga();
       let estimado=false;
       const tempos=itens.map(t=>{
-        if(t.tempo_min>0)return t.tempo_min;
-        const cxMin=(t.vel>0&&((t.medida||0)+(t.entre_pecas||0))>0)?calcCxMinRaw(t.vel,t.medida,t.entre_pecas||0)*(1-fad):0;
+        const vel=simVel>0?simVel:(t.vel||0);
+        const ep=simEp!==null?simEp:(t.entre_pecas||0);
+        if(!simAtiva&&t.tempo_min>0)return t.tempo_min;
+        const cxMin=(vel>0&&((t.medida||0)+ep)>0)?calcCxMinRaw(vel,t.medida,ep)*(1-fad):0;
         if(cxMin>0){estimado=true;return t.qtd_cx/cxMin;}
         return 0;
       });
@@ -2422,8 +2465,8 @@ async function progCarregarSemana(usarPeriodo){
       const turnoFimMin=parseHHMM(TURNO_FIM);
       const extra=tempo>0?Math.max(0,fimMinDia-turnoFimMin):0;
       const folga=tempo>0?Math.max(0,turnoFimMin-fimMinDia):0;
-      // velocidade média da esteira ponderada por caixas
-      const totalCxVel=itens.reduce((s,t)=>s+((parseFloat(t.vel)||0)*(t.qtd_cx||0)),0);
+      // velocidade média da esteira ponderada por caixas (usa valor simulado se ativo)
+      const totalCxVel=simVel>0?cx*simVel:itens.reduce((s,t)=>s+((parseFloat(t.vel)||0)*(t.qtd_cx||0)),0);
       const velMedia=cx>0&&totalCxVel>0?totalCxVel/cx:0;
       const velStr=velMedia>0?velMedia.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}):'—';
       totCx+=cx;totKg+=kg;totPt+=pt;totExtra+=extra;totFolga+=folga;totTroca+=trocaDia;totTempo+=tempo;totVelCxProd+=totalCxVel;
