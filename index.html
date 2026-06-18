@@ -2492,12 +2492,16 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     // detalhamento dos produtos a embalar em cada dia (tela + impressão)
     let det='';
     detalhes.forEach(g=>{
+      const itensFiltrados=g.itens.filter(t=>(t.qtd_cx||0)>0);
+      const totDiaCx=itensFiltrados.reduce((s,t)=>s+(t.qtd_cx||0),0);
+      const totDiaKg=itensFiltrados.reduce((s,t)=>s+((parseFloat(t.pb)||0)*(t.qtd_cx||0)),0);
       det+=`<div class="semana-detalhe-dia" style="margin-top:18px;page-break-inside:avoid"><div style="font-weight:700;margin-bottom:6px;color:var(--txt)">${g.nome} · ${g.br} <span style="color:var(--txt2);font-weight:400">(${g.itens.length} produto${g.itens.length>1?'s':''})</span></div>`;
       det+='<table class="tabela-prog"><thead><tr><th>Código</th><th>Produto</th><th style="text-align:right">Caixas</th><th style="text-align:right">KG</th></tr></thead><tbody>';
-      g.itens.filter(t=>(t.qtd_cx||0)>0).forEach(t=>{
+      itensFiltrados.forEach(t=>{
         const kg=(parseFloat(t.pb)||0)*(t.qtd_cx||0);
         det+=`<tr><td class="td-codigo">${esc(t.codigo||'')}</td><td class="td-produto">${esc(t.descricao||'')}</td><td class="td-num">${(t.qtd_cx||0).toLocaleString('pt-BR')}</td><td class="td-num">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</td></tr>`;
       });
+      det+=`<tr style="font-weight:700;border-top:2px solid var(--border)"><td colspan="2" style="text-align:right;color:var(--txt2)">Total:</td><td class="td-num">${totDiaCx.toLocaleString('pt-BR')}</td><td class="td-num">${totDiaKg>0?Math.round(totDiaKg).toLocaleString('pt-BR'):'—'}</td></tr>`;
       det+='</tbody></table></div>';
     });
     if(det)det=`<div class="semana-detalhe" style="margin-top:24px"><div class="card-title" style="margin-bottom:4px">Produtos a embalar</div>${det}</div>`;
