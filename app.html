@@ -408,6 +408,32 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 .prog-cell-input:focus { border-color:var(--accent); outline:none; }
 .prog-cell-input.mod { border-color:var(--accent); color:var(--accent); font-weight:700; }
 td.semana-extra { color: var(--red) !important; font-weight: 700; }
+/* ── SEMANA CARDS ──────────────────────────────────────────────── */
+.semana-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.semana-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s}
+.semana-card:hover{border-color:var(--txt2)}
+.semana-card-header{display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;user-select:none;transition:background .15s}
+.semana-card-header:hover{background:rgba(255,255,255,0.03)}
+.semana-card-dia{flex-shrink:0;width:88px}
+.semana-dia-nome{font-weight:700;font-size:15px;display:block;line-height:1.2}
+.semana-dia-data{font-size:11px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-top:2px;display:block}
+.semana-chips{display:flex;flex-wrap:wrap;gap:6px 20px;flex:1;align-items:flex-start}
+.semana-chip{display:flex;flex-direction:column;min-width:48px}
+.chip-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
+.chip-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;white-space:nowrap;margin-top:1px}
+.semana-card-right{flex-shrink:0;display:flex;align-items:center;gap:10px}
+.semana-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:.02em}
+.semana-badge-extra{background:rgba(220,38,38,.15);color:var(--red)}
+.semana-badge-folga{background:rgba(22,163,74,.15);color:var(--ok)}
+.semana-badge-ok{background:rgba(113,113,122,.12);color:var(--txt2)}
+.semana-chevron{color:var(--txt2);font-size:11px;transition:transform .2s;flex-shrink:0}
+.semana-card.open .semana-chevron{transform:rotate(90deg)}
+.semana-card-body{border-top:1px solid var(--border);padding:12px 16px 16px}
+.semana-card-vazia{color:var(--txt2);padding:10px 16px;font-size:13px;font-style:italic}
+.semana-totais{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px 20px}
+.semana-totais-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center;margin-right:6px;flex-shrink:0}
+.semana-extra-txt{color:var(--red)!important;font-weight:700}
+.semana-folga-txt{color:var(--ok)!important}
 td.td-ordem { color: var(--txt2); font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 36px; }
 td.td-produto { font-weight: 500; font-size: 14px; white-space: normal; text-align: left; }
 td.td-codigo { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--txt2); }
@@ -552,6 +578,7 @@ td.td-actions { width: 80px; text-align: right; }
   .semana-detalhe .card-title { margin-top: 8px !important; }
   /* destaque no papel para horas que ultrapassam o turno */
   td.semana-extra { background: #f5d76e !important; color: #000 !important; font-weight: 700 !important; }
+  .semana-cards,.semana-totais{display:none!important}
 }
 </style>
 </head>
@@ -563,10 +590,7 @@ td.td-actions { width: 80px; text-align: right; }
 <div id="app-header">
   <span class="app-brand">ritmoprod<span>.</span></span><span id="app-version" style="font-size:10px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-left:6px;opacity:0.6"></span>
   <nav class="app-tabs">
-    <button class="app-tab" onclick="switchTab('operador')">Operador</button>
-    <button class="app-tab" onclick="switchTab('tv')">TV</button>
     <button class="app-tab active" onclick="switchTab('programacao')">Estudo de Tempo</button>
-    <button class="app-tab" onclick="switchTab('simulacoes')">Simulações</button>
   </nav>
   <div class="app-right">
     <div id="app-conn-dot" title="Status Sheets"></div>
@@ -2379,6 +2403,13 @@ function progSemanaSimLimpar(){
   if(eEl)eEl.value='';
   progSemanaSimAtualizar();
 }
+function progToggleDiaCard(iso){
+  const card=document.getElementById('semana-card-'+iso);
+  const body=document.getElementById('semana-body-'+iso);
+  if(!card||!body)return;
+  const open=card.classList.toggle('open');
+  body.style.display=open?'block':'none';
+}
 // Resumo da semana (segunda a sábado da semana da data selecionada)
 async function progCarregarSemana(usarPeriodo,usarCache){
   const inpIni=document.getElementById('prog-semana-ini');
@@ -2414,7 +2445,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     const fmtBR=x=>`${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
     const nomesSem=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
     const detalhes=[]; // produtos a embalar por dia
-    let html='<table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Produtos</th><th style="text-align:right">Vel. (m/min)</th><th style="text-align:right">Entre pç (mm)</th><th style="text-align:right">Caixas</th><th style="text-align:right">Cx/h</th><th style="text-align:right">Tempo prod.</th><th style="text-align:right">Troca</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Início</th><th>Fim previsto</th><th style="text-align:right">H. extra / Folga</th><th></th></tr></thead><tbody>';
+    let html='<div class="semana-cards">';
     let totCx=0,totKg=0,totPt=0,totExtra=0,totFolga=0,totTroca=0,totTempo=0,totVelCxProd=0,totEpCxProd=0;
     const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
     const simVel=parseFloat(document.getElementById('semana-sim-vel')?.value)||0;
@@ -2429,7 +2460,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       // fim de semana (sáb/dom) só aparece quando há programação salva
       if(itens.length===0){
         if(wd===0||wd===6)return;
-        html+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td colspan="12" style="color:var(--txt2)">— sem programação salva —</td><td></td></tr>`;
+        html+=`<div class="semana-card"><div class="semana-card-vazia"><strong>${nomeDia}</strong> <span class="td-codigo">${br}</span> — sem programação salva</div></div>`;
         return;
       }
       detalhes.push({nome:nomeDia,br,itens});
@@ -2477,14 +2508,19 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       const cxh=tempo>0?cx/(tempo/60):0;
       const cxhStr=cxh>0?Math.round(cxh).toLocaleString('pt-BR'):'—';
       const trocaStr=trocaDia>0?fmtTempoHM(trocaDia):'—';
-      // mesma coluna: hora extra (vermelho) quando passa do turno, folga (verde) quando sobra tempo
-      const extraStr=extra>0?'+'+fmtTempoHM(extra):folga>0?fmtTempoHM(folga)+' folga':'—';
-      const clsExtra=extra>0?' class="td-num semana-extra"':folga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
       const tituloExtra=extra>0?'Horas extras necessárias para cumprir a programação do dia':folga>0?'Tempo de sobra antes do fim do turno (16:45)':'';
-      html+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num" title="Velocidade média ponderada por caixas">${velStr}</td><td class="td-num" title="Entre peças médio ponderado por caixas">${epStr}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" title="Caixas por hora de produção (sem troca/almoço)">${cxhStr}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-num" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0):'—'}</td><td class="td-num">${TURNO_INICIO}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
+      const _itensFilt=itens.filter(t=>(t.qtd_cx||0)>0);
+      let _prodHTML='<table class="tabela-prog"><thead><tr><th>Código</th><th>Produto</th><th style="text-align:right">Caixas</th><th style="text-align:right">KG</th></tr></thead><tbody>';
+      _itensFilt.forEach(t=>{const _kg=(parseFloat(t.pb)||0)*(t.qtd_cx||0);_prodHTML+=`<tr><td class="td-codigo">${esc(t.codigo||'')}</td><td class="td-produto">${esc(t.descricao||'')}</td><td class="td-num">${(t.qtd_cx||0).toLocaleString('pt-BR')}</td><td class="td-num">${_kg>0?Math.round(_kg).toLocaleString('pt-BR'):'—'}</td></tr>`;});
+      const _totDiaCx=_itensFilt.reduce((s,t)=>s+(t.qtd_cx||0),0);
+      const _totDiaKg=_itensFilt.reduce((s,t)=>s+((parseFloat(t.pb)||0)*(t.qtd_cx||0)),0);
+      _prodHTML+=`<tr style="border-top:2px solid var(--border)"><td colspan="2" style="text-align:right;color:var(--txt2)">Total:</td><td class="td-num">${_totDiaCx.toLocaleString('pt-BR')}</td><td class="td-num">${_totDiaKg>0?Math.round(_totDiaKg).toLocaleString('pt-BR'):'—'}</td></tr></tbody></table>`;
+      const _extraBadgeCls=extra>0?'semana-badge-extra':folga>0?'semana-badge-folga':'semana-badge-ok';
+      const _extraBadgeTxt=extra>0?'+'+fmtTempoHM(extra)+' extra':folga>0?fmtTempoHM(folga)+' folga':'No horário';
+      const iso=x.toISOString().slice(0,10);
+      html+=`<div class="semana-card" id="semana-card-${iso}"><div class="semana-card-header" onclick="progToggleDiaCard('${iso}')"><div class="semana-card-dia"><span class="semana-dia-nome">${nomeDia}</span><span class="semana-dia-data">${br}</span></div><div class="semana-chips"><div class="semana-chip"><span class="chip-label">Produtos</span><span class="chip-val">${itens.length}</span></div><div class="semana-chip"><span class="chip-label">Vel.</span><span class="chip-val">${velStr} <span style="font-size:10px;color:var(--txt2)">m/min</span></span></div><div class="semana-chip"><span class="chip-label">Entre pç</span><span class="chip-val">${epStr} <span style="font-size:10px;color:var(--txt2)">mm</span></span></div><div class="semana-chip"><span class="chip-label">Caixas</span><span class="chip-val">${cx.toLocaleString('pt-BR')}</span></div><div class="semana-chip"><span class="chip-label">KG</span><span class="chip-val" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</span></div><div class="semana-chip"><span class="chip-label">Cx/h</span><span class="chip-val">${cxhStr}</span></div><div class="semana-chip"><span class="chip-label">Tempo prod.</span><span class="chip-val">${tempoStr}</span></div><div class="semana-chip"><span class="chip-label">Troca</span><span class="chip-val">${trocaStr}</span></div><div class="semana-chip"><span class="chip-label">Início → Fim</span><span class="chip-val">${TURNO_INICIO} → <span style="color:${extra>0?'var(--red)':'var(--accent)'}">${fim||'—'}</span></span></div></div><div class="semana-card-right"><span class="semana-badge ${_extraBadgeCls}" title="${tituloExtra}">${_extraBadgeTxt}</span><span class="semana-chevron">▶</span></div></div><div class="semana-card-body" id="semana-body-${iso}" style="display:none">${_prodHTML}</div></div>`;
     });
-    const totExtraStr=totExtra>0?'+'+fmtTempoHM(totExtra):totFolga>0?fmtTempoHM(totFolga)+' folga':'—';
-    const totExtraCls=totExtra>0?' class="td-num semana-extra"':totFolga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
+    const totExtraStr=totExtra>0?'+'+fmtTempoHM(totExtra)+' extra':totFolga>0?fmtTempoHM(totFolga)+' folga':'—';
     const totCxh=totTempo>0?totCx/(totTempo/60):0;
     const totCxhStr=totCxh>0?Math.round(totCxh).toLocaleString('pt-BR'):'—';
     const totVelMedia=totCx>0&&totVelCxProd>0?totVelCxProd/totCx:0;
@@ -2492,8 +2528,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     const totEpMedia=totCx>0&&totEpCxProd>0?totEpCxProd/totCx:0;
     const totEpStr=totEpMedia>0?Math.round(totEpMedia).toLocaleString('pt-BR'):'—';
     const totTempoStr=totTempo>0?fmtTempoHM(totTempo):'—';
-    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num" title="Velocidade média ponderada na semana">${totVelStr}</td><td class="td-num" title="Entre peças médio ponderado na semana">${totEpStr}</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" title="Média de caixas por hora de produção na semana">${totCxhStr}</td><td class="td-num">${totTempoStr}</td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td class="td-num" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0):'—'}</td><td></td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
-    html+='</tbody></table>';
+    html+=`</div><div class="semana-totais"><span class="semana-totais-label">Total da semana</span><div class="semana-chip"><span class="chip-label">Vel. média</span><span class="chip-val">${totVelStr} <span style="font-size:10px;color:var(--txt2)">m/min</span></span></div><div class="semana-chip"><span class="chip-label">Entre pç médio</span><span class="chip-val">${totEpStr} <span style="font-size:10px;color:var(--txt2)">mm</span></span></div><div class="semana-chip"><span class="chip-label">Caixas</span><span class="chip-val">${totCx.toLocaleString('pt-BR')}</span></div><div class="semana-chip"><span class="chip-label">Cx/h</span><span class="chip-val">${totCxhStr}</span></div><div class="semana-chip"><span class="chip-label">Tempo prod.</span><span class="chip-val">${totTempoStr}</span></div><div class="semana-chip"><span class="chip-label">Troca total</span><span class="chip-val">${totTroca>0?fmtTempoHM(totTroca):'—'}</span></div><div class="semana-chip"><span class="chip-label">KG</span><span class="chip-val" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</span></div><div class="semana-chip"><span class="chip-label">Pontos</span><span class="chip-val" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0):'—'}</span></div><div class="semana-chip"><span class="chip-label">H. extra / Folga</span><span class="chip-val ${totExtra>0?'semana-extra-txt':totFolga>0?'semana-folga-txt':''}">${totExtraStr}</span></div></div>`;
     // detalhamento dos produtos a embalar em cada dia (tela + impressão)
     let det='';
     detalhes.forEach(g=>{
