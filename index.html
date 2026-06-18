@@ -868,6 +868,22 @@ td.td-actions { width: 80px; text-align: right; }
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <div class="card-title" style="margin-bottom:0">Resumo da semana</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="color:var(--txt2);font-size:11px;font-weight:600;letter-spacing:.06em">SIMULAR:</span>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--txt2)">
+            Vel.
+            <input type="number" id="semana-sim-vel" placeholder="m/min" min="0" step="0.5"
+              style="width:64px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:4px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
+              oninput="progSemanaSimAtualizar()">
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--txt2)">
+            Entre pç
+            <input type="number" id="semana-sim-ep" placeholder="mm" min="0" step="1"
+              style="width:64px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:4px 6px;font-size:12px;font-family:'JetBrains Mono',monospace"
+              oninput="progSemanaSimAtualizar()">
+          </label>
+          <span id="semana-sim-badge" style="display:none;color:var(--warn);font-size:11px;font-weight:600">● SIM</span>
+          <button class="btn btn-outline btn-sm" id="semana-sim-limpar" onclick="progSemanaSimLimpar()" style="display:none;border-color:var(--txt2);color:var(--txt2);padding:3px 8px;font-size:11px">✕ Sim.</button>
+          <span style="width:1px;height:16px;background:var(--border);display:inline-block"></span>
           <span class="prog-semana-periodo" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2)">
             De:
             <input type="text" id="prog-semana-ini" placeholder="DD/MM/AA" maxlength="8" inputmode="numeric"
@@ -886,23 +902,6 @@ td.td-actions { width: 80px; text-align: right; }
           <button class="btn btn-outline btn-sm" onclick="progImprimirSemana()" style="border-color:var(--txt2);color:var(--txt2)">🖨 Imprimir</button>
           <button class="btn btn-outline btn-sm" onclick="progFecharSemana()">✕ Fechar</button>
         </div>
-      </div>
-      <div id="semana-sim-row" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;padding:8px 12px;background:var(--surface2);border-radius:8px;font-size:13px">
-        <span style="color:var(--txt2);font-weight:600;font-size:11px;letter-spacing:.08em">SIMULAR:</span>
-        <label style="display:inline-flex;align-items:center;gap:6px;color:var(--txt2)">
-          Vel. (m/min)
-          <input type="number" id="semana-sim-vel" placeholder="—" min="0" step="0.5"
-            style="width:72px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:5px 7px;font-size:13px;font-family:'JetBrains Mono',monospace"
-            oninput="progSemanaSimAtualizar()">
-        </label>
-        <label style="display:inline-flex;align-items:center;gap:6px;color:var(--txt2)">
-          Entre pç (mm)
-          <input type="number" id="semana-sim-ep" placeholder="—" min="0" step="1"
-            style="width:72px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:5px 7px;font-size:13px;font-family:'JetBrains Mono',monospace"
-            oninput="progSemanaSimAtualizar()">
-        </label>
-        <span id="semana-sim-badge" style="display:none;color:var(--warn);font-size:12px;font-weight:600">● SIMULAÇÃO ATIVA</span>
-        <button class="btn btn-outline btn-sm" id="semana-sim-limpar" onclick="progSemanaSimLimpar()" style="display:none;border-color:var(--txt2);color:var(--txt2)">Limpar sim.</button>
       </div>
       <div id="prog-semana-body" style="overflow-x:auto"></div>
     </div>
