@@ -369,9 +369,9 @@ tr.tv-periodo-ativo td.tv-periodo-td .pid { color: var(--accent); }
 
 /* ── PROGRAMAÇÃO STYLES ──────────────────────────────────────────── */
 #prog-wrapper {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 24px 12px 60px;
+  max-width: none;
+  margin: 0;
+  padding: 24px 20px 60px;
 }
 #prog-wrapper h2 { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
@@ -434,6 +434,7 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-totais-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center;margin-right:6px;flex-shrink:0}
 .semana-extra-txt{color:var(--red)!important;font-weight:700}
 .semana-folga-txt{color:var(--ok)!important}
+.semana-print-only{display:none}
 td.td-ordem { color: var(--txt2); font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 36px; }
 td.td-produto { font-weight: 500; font-size: 14px; white-space: normal; text-align: left; }
 td.td-codigo { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--txt2); }
@@ -568,17 +569,15 @@ td.td-actions { width: 80px; text-align: right; }
   #prog-print-header { border-bottom: 2px solid #000 !important; padding-bottom: 8px !important; margin-bottom: 14px !important; font-family: Arial, sans-serif !important; }
   /* modo "imprimir semana": mostra só o resumo semanal */
   body.print-semana #prog-card-tabela, body.print-semana #prog-card-resumo { display: none !important; }
-  body.print-semana #prog-card-semana { display: block !important; page-break-inside: avoid; }
+  body.print-semana #prog-card-semana { display: block !important; page-break-inside: auto; }
   body.print-semana #prog-semana-body { overflow: visible !important; }
-  body.print-semana .prog-semana-periodo { display: none !important; }
-  body.print-semana #semana-sim-row { display: none !important; }
-  /* o resumo semanal pode passar de uma página; o detalhamento por dia pode quebrar */
-  body.print-semana #prog-card-semana { page-break-inside: auto; }
+  body.print-semana #semana-ctrl-area { display: none !important; }
   .semana-detalhe-dia { page-break-inside: avoid; }
   .semana-detalhe .card-title { margin-top: 8px !important; }
   /* destaque no papel para horas que ultrapassam o turno */
   td.semana-extra { background: #f5d76e !important; color: #000 !important; font-weight: 700 !important; }
   .semana-cards,.semana-totais{display:none!important}
+  .semana-print-only{display:block!important}
 }
 </style>
 </head>
@@ -889,7 +888,7 @@ td.td-actions { width: 80px; text-align: right; }
     </div>
 
     <div class="card" id="prog-card-semana" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px" id="semana-ctrl-area">
         <div class="card-title" style="margin-bottom:0">Resumo da semana</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span style="color:var(--txt2);font-size:11px;font-weight:600;letter-spacing:.06em">SIMULAR:</span>
@@ -2446,6 +2445,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     const nomesSem=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
     const detalhes=[]; // produtos a embalar por dia
     let html='<div class="semana-cards">';
+    let printRows='';
     let totCx=0,totKg=0,totPt=0,totExtra=0,totFolga=0,totTroca=0,totTempo=0,totVelCxProd=0,totEpCxProd=0;
     const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
     const simVel=parseFloat(document.getElementById('semana-sim-vel')?.value)||0;
@@ -2461,6 +2461,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       if(itens.length===0){
         if(wd===0||wd===6)return;
         html+=`<div class="semana-card"><div class="semana-card-vazia"><strong>${nomeDia}</strong> <span class="td-codigo">${br}</span> — sem programação salva</div></div>`;
+        printRows+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td colspan="11" style="color:#999">— sem programação salva —</td></tr>`;
         return;
       }
       detalhes.push({nome:nomeDia,br,itens});
@@ -2518,6 +2519,9 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       const _extraBadgeCls=extra>0?'semana-badge-extra':folga>0?'semana-badge-folga':'semana-badge-ok';
       const _extraBadgeTxt=extra>0?'+'+fmtTempoHM(extra)+' extra':folga>0?fmtTempoHM(folga)+' folga':'No horário';
       const iso=x.toISOString().slice(0,10);
+      const _printExtraStr=extra>0?'+'+fmtTempoHM(extra)+' extra':folga>0?fmtTempoHM(folga)+' folga':'—';
+      const _printExtraCls=extra>0?'semana-extra':'';
+      printRows+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${velStr}</td><td class="td-num">${epStr}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num">${cxhStr}</td><td class="td-num">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-num">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${TURNO_INICIO}</td><td class="td-num">${fim||'—'}</td><td class="td-num ${_printExtraCls}">${_printExtraStr}</td></tr>`;
       html+=`<div class="semana-card" id="semana-card-${iso}"><div class="semana-card-header" onclick="progToggleDiaCard('${iso}')"><div class="semana-card-dia"><span class="semana-dia-nome">${nomeDia}</span><span class="semana-dia-data">${br}</span></div><div class="semana-chips"><div class="semana-chip"><span class="chip-label">Produtos</span><span class="chip-val">${itens.length}</span></div><div class="semana-chip"><span class="chip-label">Vel.</span><span class="chip-val">${velStr} <span style="font-size:10px;color:var(--txt2)">m/min</span></span></div><div class="semana-chip"><span class="chip-label">Entre pç</span><span class="chip-val">${epStr} <span style="font-size:10px;color:var(--txt2)">mm</span></span></div><div class="semana-chip"><span class="chip-label">Caixas</span><span class="chip-val">${cx.toLocaleString('pt-BR')}</span></div><div class="semana-chip"><span class="chip-label">KG</span><span class="chip-val" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</span></div><div class="semana-chip"><span class="chip-label">Cx/h</span><span class="chip-val">${cxhStr}</span></div><div class="semana-chip"><span class="chip-label">Tempo prod.</span><span class="chip-val">${tempoStr}</span></div><div class="semana-chip"><span class="chip-label">Troca</span><span class="chip-val">${trocaStr}</span></div><div class="semana-chip"><span class="chip-label">Início → Fim</span><span class="chip-val">${TURNO_INICIO} → <span style="color:${extra>0?'var(--red)':'var(--accent)'}">${fim||'—'}</span></span></div></div><div class="semana-card-right"><span class="semana-badge ${_extraBadgeCls}" title="${tituloExtra}">${_extraBadgeTxt}</span><span class="semana-chevron">▶</span></div></div><div class="semana-card-body" id="semana-body-${iso}" style="display:none">${_prodHTML}</div></div>`;
     });
     const totExtraStr=totExtra>0?'+'+fmtTempoHM(totExtra)+' extra':totFolga>0?fmtTempoHM(totFolga)+' folga':'—';
@@ -2529,6 +2533,9 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     const totEpStr=totEpMedia>0?Math.round(totEpMedia).toLocaleString('pt-BR'):'—';
     const totTempoStr=totTempo>0?fmtTempoHM(totTempo):'—';
     html+=`</div><div class="semana-totais"><span class="semana-totais-label">Total da semana</span><div class="semana-chip"><span class="chip-label">Vel. média</span><span class="chip-val">${totVelStr} <span style="font-size:10px;color:var(--txt2)">m/min</span></span></div><div class="semana-chip"><span class="chip-label">Entre pç médio</span><span class="chip-val">${totEpStr} <span style="font-size:10px;color:var(--txt2)">mm</span></span></div><div class="semana-chip"><span class="chip-label">Caixas</span><span class="chip-val">${totCx.toLocaleString('pt-BR')}</span></div><div class="semana-chip"><span class="chip-label">Cx/h</span><span class="chip-val">${totCxhStr}</span></div><div class="semana-chip"><span class="chip-label">Tempo prod.</span><span class="chip-val">${totTempoStr}</span></div><div class="semana-chip"><span class="chip-label">Troca total</span><span class="chip-val">${totTroca>0?fmtTempoHM(totTroca):'—'}</span></div><div class="semana-chip"><span class="chip-label">KG</span><span class="chip-val" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</span></div><div class="semana-chip"><span class="chip-label">Pontos</span><span class="chip-val" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0):'—'}</span></div><div class="semana-chip"><span class="chip-label">H. extra / Folga</span><span class="chip-val ${totExtra>0?'semana-extra-txt':totFolga>0?'semana-folga-txt':''}">${totExtraStr}</span></div></div>`;
+    // tabela compacta para impressão (cards ocultos em print)
+    printRows+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right">Total da semana:</td><td class="td-num">${totVelStr}</td><td class="td-num">${totEpStr}</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num">${totCxhStr}</td><td class="td-num">${totTempoStr}</td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td class="td-num">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</td><td></td><td></td><td class="td-num ${totExtra>0?'semana-extra':''}">${totExtraStr}</td></tr>`;
+    const printHtml=`<div class="semana-print-only"><table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Prod.</th><th style="text-align:right">Vel. (m/min)</th><th style="text-align:right">Entre pç (mm)</th><th style="text-align:right">Caixas</th><th style="text-align:right">Cx/h</th><th style="text-align:right">Tempo prod.</th><th style="text-align:right">Troca</th><th style="text-align:right">KG</th><th style="text-align:right">Início</th><th style="text-align:right">Fim previsto</th><th style="text-align:right">H. extra / Folga</th></tr></thead><tbody>${printRows}</tbody></table></div>`;
     // detalhamento dos produtos a embalar em cada dia (tela + impressão)
     let det='';
     detalhes.forEach(g=>{
@@ -2545,7 +2552,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       det+='</tbody></table></div>';
     });
     if(det)det=`<div class="semana-detalhe" style="margin-top:24px"><div class="card-title" style="margin-bottom:4px">Produtos a embalar</div>${det}</div>`;
-    document.getElementById('prog-semana-body').innerHTML=html+det;
+    document.getElementById('prog-semana-body').innerHTML=html+printHtml+det;
     document.getElementById('prog-card-semana').style.display='block';
     status.textContent='';
   }catch(e){status.textContent='';progToast('Erro ao carregar semana: '+e.message,'err');}
