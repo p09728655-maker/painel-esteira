@@ -2414,8 +2414,8 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     const fmtBR=x=>`${String(x.getDate()).padStart(2,'0')}/${String(x.getMonth()+1).padStart(2,'0')}/${x.getFullYear()}`;
     const nomesSem=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
     const detalhes=[]; // produtos a embalar por dia
-    let html='<table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Produtos</th><th style="text-align:right">Caixas</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Cx/h</th><th style="text-align:right">Vel. (m/min)</th><th style="text-align:right">Tempo prod.</th><th style="text-align:right">Troca</th><th>Fim previsto</th><th style="text-align:right">H. extra / Folga</th><th></th></tr></thead><tbody>';
-    let totCx=0,totKg=0,totPt=0,totExtra=0,totFolga=0,totTroca=0,totTempo=0,totVelCxProd=0;
+    let html='<table class="tabela-prog"><thead><tr><th>Dia</th><th>Data</th><th style="text-align:right">Produtos</th><th style="text-align:right">Vel. (m/min)</th><th style="text-align:right">Entre pç (mm)</th><th style="text-align:right">Caixas</th><th style="text-align:right">Cx/h</th><th style="text-align:right">Tempo prod.</th><th style="text-align:right">Troca</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Início</th><th>Fim previsto</th><th style="text-align:right">H. extra / Folga</th><th></th></tr></thead><tbody>';
+    let totCx=0,totKg=0,totPt=0,totExtra=0,totFolga=0,totTroca=0,totTempo=0,totVelCxProd=0,totEpCxProd=0;
     const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
     const simVel=parseFloat(document.getElementById('semana-sim-vel')?.value)||0;
     const simEpRaw=document.getElementById('semana-sim-ep')?.value;
@@ -2429,7 +2429,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       // fim de semana (sáb/dom) só aparece quando há programação salva
       if(itens.length===0){
         if(wd===0||wd===6)return;
-        html+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td colspan="10" style="color:var(--txt2)">— sem programação salva —</td><td></td></tr>`;
+        html+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td colspan="12" style="color:var(--txt2)">— sem programação salva —</td><td></td></tr>`;
         return;
       }
       detalhes.push({nome:nomeDia,br,itens});
@@ -2464,11 +2464,14 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       const turnoFimMin=parseHHMM(TURNO_FIM);
       const extra=tempo>0?Math.max(0,fimMinDia-turnoFimMin):0;
       const folga=tempo>0?Math.max(0,turnoFimMin-fimMinDia):0;
-      // velocidade média da esteira ponderada por caixas (usa valor simulado se ativo)
+      // velocidade e entre peças médias ponderadas por caixas (usa valores simulados se ativos)
       const totalCxVel=simVel>0?cx*simVel:itens.reduce((s,t)=>s+((parseFloat(t.vel)||0)*(t.qtd_cx||0)),0);
       const velMedia=cx>0&&totalCxVel>0?totalCxVel/cx:0;
       const velStr=velMedia>0?velMedia.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}):'—';
-      totCx+=cx;totKg+=kg;totPt+=pt;totExtra+=extra;totFolga+=folga;totTroca+=trocaDia;totTempo+=tempo;totVelCxProd+=totalCxVel;
+      const totalCxEp=simEp!==null?cx*simEp:itens.reduce((s,t)=>s+((parseFloat(t.entre_pecas)||0)*(t.qtd_cx||0)),0);
+      const epMedia=cx>0&&totalCxEp>0?totalCxEp/cx:0;
+      const epStr=epMedia>0?Math.round(epMedia).toLocaleString('pt-BR'):'—';
+      totCx+=cx;totKg+=kg;totPt+=pt;totExtra+=extra;totFolga+=folga;totTroca+=trocaDia;totTempo+=tempo;totVelCxProd+=totalCxVel;totEpCxProd+=totalCxEp;
       const tempoStr=tempo>0?fmtTempoHM(tempo):'—';
       // caixas por hora de produção (não conta troca nem almoço)
       const cxh=tempo>0?cx/(tempo/60):0;
@@ -2478,7 +2481,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       const extraStr=extra>0?'+'+fmtTempoHM(extra):folga>0?fmtTempoHM(folga)+' folga':'—';
       const clsExtra=extra>0?' class="td-num semana-extra"':folga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
       const tituloExtra=extra>0?'Horas extras necessárias para cumprir a programação do dia':folga>0?'Tempo de sobra antes do fim do turno (16:45)':'';
-      html+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0):'—'}</td><td class="td-num" title="Caixas por hora de produção (sem troca/almoço)">${cxhStr}</td><td class="td-num" title="Velocidade média da esteira ponderada por caixas">${velStr}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
+      html+=`<tr><td>${nomeDia}</td><td class="td-codigo">${br}</td><td class="td-num">${itens.length}</td><td class="td-num" title="Velocidade média ponderada por caixas">${velStr}</td><td class="td-num" title="Entre peças médio ponderado por caixas">${epStr}</td><td class="td-num">${cx.toLocaleString('pt-BR')}</td><td class="td-num" title="Caixas por hora de produção (sem troca/almoço)">${cxhStr}</td><td class="td-num" title="${estimado?'Estimado a partir de velocidade/medida/entre peças (não estava salvo)':''}">${tempoStr}</td><td class="td-num">${trocaStr}</td><td class="td-num" style="color:var(--ok)">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${pt>0?fmtNum(pt,0):'—'}</td><td class="td-num">${TURNO_INICIO}</td><td class="td-hora${extra>0?' semana-extra':''}">${fim||'—'}</td><td${clsExtra} title="${tituloExtra}">${extraStr}</td><td><button class="btn btn-outline btn-sm" onclick="progAbrirDia('${x.toISOString().slice(0,10)}')">Abrir</button></td></tr>`;
     });
     const totExtraStr=totExtra>0?'+'+fmtTempoHM(totExtra):totFolga>0?fmtTempoHM(totFolga)+' folga':'—';
     const totExtraCls=totExtra>0?' class="td-num semana-extra"':totFolga>0?' class="td-num" style="color:var(--ok)"':' class="td-num"';
@@ -2486,7 +2489,10 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     const totCxhStr=totCxh>0?Math.round(totCxh).toLocaleString('pt-BR'):'—';
     const totVelMedia=totCx>0&&totVelCxProd>0?totVelCxProd/totCx:0;
     const totVelStr=totVelMedia>0?totVelMedia.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}):'—';
-    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0):'—'}</td><td class="td-num" title="Média de caixas por hora de produção na semana">${totCxhStr}</td><td class="td-num" title="Velocidade média ponderada da esteira na semana">${totVelStr}</td><td></td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
+    const totEpMedia=totCx>0&&totEpCxProd>0?totEpCxProd/totCx:0;
+    const totEpStr=totEpMedia>0?Math.round(totEpMedia).toLocaleString('pt-BR'):'—';
+    const totTempoStr=totTempo>0?fmtTempoHM(totTempo):'—';
+    html+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right;color:var(--txt2)">Total da semana:</td><td class="td-num" title="Velocidade média ponderada na semana">${totVelStr}</td><td class="td-num" title="Entre peças médio ponderado na semana">${totEpStr}</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num" title="Média de caixas por hora de produção na semana">${totCxhStr}</td><td class="td-num">${totTempoStr}</td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td class="td-num" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</td><td class="td-num" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0):'—'}</td><td></td><td></td><td${totExtraCls}>${totExtraStr}</td><td></td></tr>`;
     html+='</tbody></table>';
     // detalhamento dos produtos a embalar em cada dia (tela + impressão)
     let det='';
