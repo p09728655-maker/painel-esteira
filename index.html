@@ -855,7 +855,7 @@ td.td-actions { width: 80px; text-align: right; }
   <div id="prog-print-footer" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <strong style="font-size:11px;color:#000;letter-spacing:.5px">PPCP PATRIMAR</strong>
-      <span id="prog-pf-formula" style="font-size:9px;color:#555">Cx/min = Vel × 1000 / (Medida + Entre pç) × (1 − Fad%)</span>
+      <span id="prog-pf-formula" style="font-size:9px;color:#555">Cx/min = Vel × 1000 / (Medida caixa + Entre pç) × (1 − Fad%)</span>
       <span id="prog-pf-emitido" style="font-size:9px;color:#888">Emitido em —</span>
     </div>
   </div>
@@ -2614,7 +2614,7 @@ function progAtualizarRodapePrint(){
   const emitido=`${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const fad=Math.round((progGetFadiga()||0)*100);
   document.getElementById('prog-pf-emitido').textContent='Emitido em '+emitido;
-  document.getElementById('prog-pf-formula').textContent=`Cx/min = Vel × 1000 / (Medida + Entre pç) × (1 − ${fad}% fad.)`;
+  document.getElementById('prog-pf-formula').textContent=`Cx/min = Vel × 1000 / (Medida caixa + Entre pç) × (1 − ${fad}% fad.)`;
 }
 function progImprimirDia(){
   progAtualizarRodapePrint();
