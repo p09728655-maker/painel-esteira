@@ -534,7 +534,7 @@ td.td-actions { width: 80px; text-align: right; }
 
 /* ── PRINT ───────────────────────────────────────────────────────── */
 @media print {
-  @page { margin: 15mm 12mm; }
+  @page { margin: 15mm 12mm 24mm 12mm; }
   * { color: #000 !important; background: #fff !important; border-color: #ccc !important; box-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   #app-header, #tab-operador, #tab-tv, #tab-simulacoes, #prog-print-header-toggle,
   #prog-card-data, #prog-card-busca, #prog-card-semana, #produto-preview, #prog-toast,
@@ -570,7 +570,9 @@ td.td-actions { width: 80px; text-align: right; }
   /* modo "imprimir semana": mostra só o resumo semanal */
   body.print-semana #prog-card-tabela, body.print-semana #prog-card-resumo { display: none !important; }
   body.print-semana #prog-card-semana { display: block !important; page-break-inside: auto; }
-  body.print-semana #prog-semana-body { overflow: visible !important; }
+  body.print-semana #prog-semana-body { overflow: visible !important; padding-bottom: 16mm !important; }
+  /* última tabela diária não pode terminar colada no rodapé fixo */
+  .semana-detalhe-dia:last-child { padding-bottom: 12mm !important; }
   body.print-semana #semana-ctrl-area { display: none !important; }
   .semana-detalhe-dia { page-break-inside: avoid; }
   .semana-detalhe .card-title { margin-top: 8px !important; }
