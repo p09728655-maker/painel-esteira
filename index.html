@@ -574,6 +574,8 @@ td.td-actions { width: 80px; text-align: right; }
   /* última tabela diária não pode terminar colada no rodapé fixo */
   .semana-detalhe-dia:last-child { padding-bottom: 12mm !important; }
   body.print-semana #semana-ctrl-area { display: none !important; }
+  /* impressão apenas do resumo da semana: oculta o detalhamento dos produtos */
+  body.print-semana-resumo .semana-detalhe { display: none !important; }
   .semana-detalhe-dia { page-break-inside: avoid; }
   .semana-detalhe .card-title { margin-top: 8px !important; }
   td.semana-extra { background: #f5d76e !important; color: #000 !important; font-weight: 700 !important; }
@@ -933,6 +935,7 @@ td.td-actions { width: 80px; text-align: right; }
           </span>
           <button class="btn btn-outline btn-sm" onclick="progCarregarSemana(true)" title="Atualizar o resumo com o período escolhido">↻ Atualizar</button>
           <button class="btn btn-outline btn-sm" onclick="progImprimirSemana()" style="border-color:var(--txt2);color:var(--txt2)">🖨 Imprimir</button>
+          <button class="btn btn-outline btn-sm" onclick="progImprimirSemana(true)" style="border-color:var(--txt2);color:var(--txt2)" title="Imprime apenas a tabela de resumo da semana, sem o detalhamento dos produtos">🖨 Só resumo</button>
           <button class="btn btn-outline btn-sm" onclick="progFecharSemana()">✕ Fechar</button>
         </div>
       </div>
@@ -2620,10 +2623,11 @@ function progImprimirDia(){
   progAtualizarRodapePrint();
   window.print();
 }
-function progImprimirSemana(){
+function progImprimirSemana(soResumo){
   progAtualizarRodapePrint();
   document.body.classList.add('print-semana');
-  const off=()=>{document.body.classList.remove('print-semana');window.removeEventListener('afterprint',off);};
+  if(soResumo)document.body.classList.add('print-semana-resumo');
+  const off=()=>{document.body.classList.remove('print-semana');document.body.classList.remove('print-semana-resumo');window.removeEventListener('afterprint',off);};
   window.addEventListener('afterprint',off);
   window.print();
 }
