@@ -2519,7 +2519,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       const trocaStr=trocaDia>0?fmtTempoHM(trocaDia):'—';
       const tituloExtra=extra>0?'Horas extras necessárias para cumprir a programação do dia':folga>0?'Tempo de sobra antes do fim do turno (16:45)':'';
       let _prodHTML='<div style="overflow-x:auto"><table class="tabela-prog"><thead><tr><th style="width:32px">#</th><th>Produto</th><th>Código</th><th style="text-align:right">Vel (m/min)</th><th style="text-align:right">Entre pç (mm)</th><th style="text-align:right">Qtd (cx)</th><th style="text-align:right">Cx/h</th><th style="text-align:right">Tempo</th><th style="text-align:right">Troca</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Início</th><th style="text-align:right">Fim</th></tr></thead><tbody>';
-      let _curP=parseHHMM(TURNO_INICIO),_rowIdx=0,_totDiaCx=0,_totDiaKg=0;
+      let _curP=parseHHMM(TURNO_INICIO),_rowIdx=0,_totDiaCx=0,_totDiaKg=0,_totDiaTempo=0,_totDiaTroca=0,_totDiaPontos=0;
       itens.forEach((t,_j)=>{
         const _tm=tempos[_j]||0,_tk=trocas[_j]||0;
         if(_tk>0)_curP=progAddMinComAlmoco(_curP,_tk);
@@ -2531,10 +2531,11 @@ async function progCarregarSemana(usarPeriodo,usarCache){
         const _cxh=_tm>0?(t.qtd_cx||0)/(_tm/60):0;
         const _vd=simVel>0?simVel:(t.vel||0);
         const _ed=simEp!==null?simEp:(t.entre_pecas||0);
-        _totDiaCx+=(t.qtd_cx||0);_totDiaKg+=_kg;_rowIdx++;
+        _totDiaCx+=(t.qtd_cx||0);_totDiaKg+=_kg;_totDiaTempo+=_tm;_totDiaTroca+=_tk;_totDiaPontos+=(parseFloat(t.pontos)||0);_rowIdx++;
         _prodHTML+=`<tr><td class="td-num">${_rowIdx}</td><td class="td-produto">${esc(t.descricao||'')}</td><td class="td-codigo">${esc(t.codigo||'')}</td><td class="td-num">${_vd?fmtNum(_vd,1):'—'}</td><td class="td-num">${_ed!=null?Math.round(_ed).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${(t.qtd_cx||0).toLocaleString('pt-BR')}</td><td class="td-num">${_cxh>0?Math.round(_cxh).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${_tm>0?fmtTempoHM(_tm):'—'}</td><td class="td-num">${_tk>0?fmtTempoHM(_tk):'—'}</td><td class="td-num">${_kg>0?Math.round(_kg).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${t.pontos?fmtNum(t.pontos,0):'—'}</td><td class="td-num">${_hIni}</td><td class="td-num">${_hFim||'—'}</td></tr>`;
       });
-      _prodHTML+=`<tr style="border-top:2px solid var(--border);font-weight:700"><td colspan="5" style="text-align:right;color:var(--txt2)">Total:</td><td class="td-num">${_totDiaCx.toLocaleString('pt-BR')}</td><td colspan="3"></td><td class="td-num">${_totDiaKg>0?Math.round(_totDiaKg).toLocaleString('pt-BR'):'—'}</td><td colspan="3"></td></tr></tbody></table></div>`;
+      const _totDiaCxh=_totDiaTempo>0?_totDiaCx/(_totDiaTempo/60):0;
+      _prodHTML+=`<tr style="border-top:2px solid var(--border);font-weight:700"><td colspan="5" style="text-align:right;color:var(--txt2)">Total:</td><td class="td-num">${_totDiaCx.toLocaleString('pt-BR')}</td><td class="td-num">${_totDiaCxh>0?Math.round(_totDiaCxh).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${_totDiaTempo>0?fmtTempoHM(_totDiaTempo):'—'}</td><td class="td-num">${_totDiaTroca>0?fmtTempoHM(_totDiaTroca):'—'}</td><td class="td-num">${_totDiaKg>0?Math.round(_totDiaKg).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${_totDiaPontos>0?fmtNum(_totDiaPontos,0):'—'}</td><td colspan="2"></td></tr></tbody></table></div>`;
       const _extraBadgeCls=extra>0?'semana-badge-extra':folga>0?'semana-badge-folga':'semana-badge-ok';
       const _extraBadgeTxt=extra>0?'+'+fmtTempoHM(extra)+' extra':folga>0?fmtTempoHM(folga)+' folga':'No horário';
       const iso=x.toISOString().slice(0,10);
@@ -2558,12 +2559,10 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     // detalhamento dos produtos a embalar em cada dia (tela + impressão)
     let det='';
     detalhes.forEach(g=>{
-      const itensFiltrados=g.itens.filter(t=>(t.qtd_cx||0)>0);
-      const totDiaCx=itensFiltrados.reduce((s,t)=>s+(t.qtd_cx||0),0);
-      const totDiaKg=itensFiltrados.reduce((s,t)=>s+((parseFloat(t.pb)||0)*(t.qtd_cx||0)),0);
       det+=`<div class="semana-detalhe-dia" style="margin-top:18px;page-break-inside:avoid"><div style="font-weight:700;margin-bottom:6px;color:var(--txt)">${g.nome} · ${g.br} <span style="color:var(--txt2);font-weight:400">(${g.itens.length} produto${g.itens.length>1?'s':''})</span></div>`;
       det+='<div style="overflow-x:auto"><table class="tabela-prog"><thead><tr><th style="width:32px">#</th><th>Produto</th><th>Código</th><th style="text-align:right">Vel (m/min)</th><th style="text-align:right">Entre pç (mm)</th><th style="text-align:right">Qtd (cx)</th><th style="text-align:right">Cx/h</th><th style="text-align:right">Tempo</th><th style="text-align:right">Troca</th><th style="text-align:right">KG</th><th style="text-align:right">Pontos</th><th style="text-align:right">Início</th><th style="text-align:right">Fim</th></tr></thead><tbody>';
       let _dCur=parseHHMM(TURNO_INICIO),_dIdx=0;
+      let totDiaCx=0,totDiaKg=0,totDiaTempo=0,totDiaTroca=0,totDiaPontos=0;
       g.itens.forEach((t,_j)=>{
         const _dtm=g.tempos[_j]||0,_dtk=g.trocas[_j]||0;
         if(_dtk>0)_dCur=progAddMinComAlmoco(_dCur,_dtk);
@@ -2574,9 +2573,11 @@ async function progCarregarSemana(usarPeriodo,usarCache){
         const kg=(parseFloat(t.pb)||0)*(t.qtd_cx||0);
         const cxh=_dtm>0?(t.qtd_cx||0)/(_dtm/60):0;
         _dIdx++;
+        totDiaCx+=(t.qtd_cx||0);totDiaKg+=kg;totDiaTempo+=_dtm;totDiaTroca+=_dtk;totDiaPontos+=(parseFloat(t.pontos)||0);
         det+=`<tr><td class="td-num">${_dIdx}</td><td class="td-produto">${esc(t.descricao||'')}</td><td class="td-codigo">${esc(t.codigo||'')}</td><td class="td-num">${t.vel?fmtNum(t.vel,1):'—'}</td><td class="td-num">${t.entre_pecas!=null?Math.round(t.entre_pecas).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${(t.qtd_cx||0).toLocaleString('pt-BR')}</td><td class="td-num">${cxh>0?Math.round(cxh).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${_dtm>0?fmtTempoHM(_dtm):'—'}</td><td class="td-num">${_dtk>0?fmtTempoHM(_dtk):'—'}</td><td class="td-num">${kg>0?Math.round(kg).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${t.pontos?fmtNum(t.pontos,0):'—'}</td><td class="td-num">${_dhIni}</td><td class="td-num">${_dhFim||'—'}</td></tr>`;
       });
-      det+=`<tr style="border-top:2px solid var(--border);font-weight:700"><td colspan="5" style="text-align:right;color:var(--txt2)">Total:</td><td class="td-num">${totDiaCx.toLocaleString('pt-BR')}</td><td colspan="3"></td><td class="td-num">${totDiaKg>0?Math.round(totDiaKg).toLocaleString('pt-BR'):'—'}</td><td colspan="3"></td></tr>`;
+      const totDiaCxh=totDiaTempo>0?totDiaCx/(totDiaTempo/60):0;
+      det+=`<tr style="border-top:2px solid var(--border);font-weight:700"><td colspan="5" style="text-align:right;color:var(--txt2)">Total:</td><td class="td-num">${totDiaCx.toLocaleString('pt-BR')}</td><td class="td-num">${totDiaCxh>0?Math.round(totDiaCxh).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${totDiaTempo>0?fmtTempoHM(totDiaTempo):'—'}</td><td class="td-num">${totDiaTroca>0?fmtTempoHM(totDiaTroca):'—'}</td><td class="td-num">${totDiaKg>0?Math.round(totDiaKg).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${totDiaPontos>0?fmtNum(totDiaPontos,0):'—'}</td><td colspan="2"></td></tr>`;
       det+='</tbody></table></div></div>';
     });
     if(det)det=`<div class="semana-detalhe" style="margin-top:24px"><div class="card-title" style="margin-bottom:4px">Produtos a embalar</div>${det}</div>`;
