@@ -434,6 +434,31 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-totais-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center;margin-right:6px;flex-shrink:0}
 .semana-extra-txt{color:var(--red)!important;font-weight:700}
 .semana-folga-txt{color:var(--ok)!important}
+/* ── RESUMO SEMANAL: blocos extras (indicadores / executivo / dia crítico / gráfico) ── */
+.semana-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:18px 0 8px}
+.semana-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:8px}
+.semana-kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;flex-direction:column;gap:3px}
+.semana-kpi .kpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
+.semana-kpi .kpi-val{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;white-space:nowrap}
+.semana-kpi .kpi-sub{font-size:10px;color:var(--txt2)}
+.semana-status{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px}
+.semana-status .dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-ok{background:var(--ok)}.dot-warn{background:var(--warn)}.dot-red{background:var(--red)}
+.txt-ok{color:var(--ok)}.txt-warn{color:var(--warn)}.txt-red{color:var(--red)}
+.semana-crit{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:8px}
+.semana-crit-item{border:1px solid var(--border);border-left:4px solid var(--border);border-radius:8px;padding:10px 14px;background:var(--surface);display:flex;flex-direction:column;gap:2px}
+.semana-crit-item.crit-accent{border-left-color:var(--accent)}
+.semana-crit-item.crit-red{border-left-color:var(--red)}
+.semana-crit-item.crit-warn{border-left-color:var(--warn)}
+.semana-crit-item .crit-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt2)}
+.semana-crit-item .crit-dia{font-size:14px;font-weight:700}
+.semana-crit-item .crit-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--txt2)}
+.semana-graf{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.semana-graf-row{display:flex;align-items:center;gap:10px}
+.semana-graf-lbl{width:118px;flex-shrink:0;font-size:12px;color:var(--txt2);white-space:nowrap}
+.semana-graf-bar-wrap{flex:1;background:var(--surface2);border-radius:4px;height:18px;overflow:hidden}
+.semana-graf-bar{height:100%;background:var(--accent);border-radius:4px;min-width:2px}
+.semana-graf-val{width:92px;flex-shrink:0;text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px}
 .semana-print-only{display:none}
 td.td-ordem { color: var(--txt2); font-family: 'JetBrains Mono', monospace; font-size: 12px; width: 36px; }
 td.td-produto { font-weight: 500; font-size: 14px; white-space: normal; text-align: left; }
@@ -581,6 +606,21 @@ td.td-actions { width: 80px; text-align: right; }
   td.semana-extra { background: #f5d76e !important; color: #000 !important; font-weight: 700 !important; }
   .semana-cards,.semana-totais{display:none!important}
   .semana-print-only{display:block!important}
+  /* blocos extras do resumo semanal na impressão A4 */
+  .semana-kpis,.semana-crit,.semana-graf,.semana-graf-wrap{page-break-inside:avoid}
+  .semana-kpi,.semana-crit-item{border:1px solid #ccc !important;background:#f8f8f8 !important}
+  .semana-kpi .kpi-val{font-size:14px !important}
+  .semana-sec-title{color:#000 !important;border-bottom:1px solid #aaa !important;padding-bottom:3px !important;font-size:10px !important;margin-top:14px !important;letter-spacing:1px !important;page-break-after:avoid !important;break-after:avoid !important}
+  .semana-graf-row{page-break-inside:avoid}
+  .semana-graf-bar-wrap{background:#eee !important;border:1px solid #999 !important}
+  .semana-graf-bar{background:#333 !important;border-radius:0 !important}
+  .semana-status .dot.dot-ok{background:#16A34A !important}
+  .semana-status .dot.dot-warn{background:#EAB308 !important}
+  .semana-status .dot.dot-red{background:#DC2626 !important}
+  .txt-ok{color:#15803D !important}.txt-warn{color:#A16207 !important}.txt-red{color:#B91C1C !important}
+  .semana-crit-item.crit-accent{border-left:4px solid #FF5C1F !important}
+  .semana-crit-item.crit-red{border-left:4px solid #DC2626 !important}
+  .semana-crit-item.crit-warn{border-left:4px solid #CA8A04 !important}
   #prog-print-footer{display:block!important;position:fixed!important;bottom:0;left:0;right:0;background:#fff;border-top:1.5px solid #333;padding:5px 12px;font-family:Arial,sans-serif}
 }
 </style>
@@ -1244,7 +1284,7 @@ function parseHHMM(str) { const p=(str||'').split(':'); return parseInt(p[0]||0)
 function minToHHMM(min) { const h=Math.floor(min/60),m=Math.floor(min%60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
 function fmtNum(n, dec=0) { if(n==null||isNaN(n))return'—'; return n.toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function fmtTempoHM(min) { const h=Math.floor(min/60),m=Math.round(min%60); if(h===0)return`${m}min`; return`${h}h${m>0?String(m).padStart(2,'0'):''}`; }
+function fmtTempoHM(min) { const t=Math.round(min),h=Math.floor(t/60),m=t%60; if(h===0)return`${m}min`; return`${h}h${m>0?String(m).padStart(2,'0'):''}`; }
 function isoToBR(iso) { const p=iso.split('-'); return`${p[2]}/${p[1]}/${p[0]}`; }
 
 function calcCxMinRaw(vel, medida, ep) {
@@ -1270,8 +1310,8 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.app-tab').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  document.querySelectorAll('.app-tab').forEach((b,i) => {
-    if (['operador','tv','programacao','simulacoes'][i] === name) b.classList.add('active');
+  document.querySelectorAll('.app-tab').forEach(b => {
+    b.classList.toggle('active', (b.getAttribute('onclick')||'').includes("switchTab('"+name+"')"));
   });
   currentTab = name;
 
@@ -2460,10 +2500,11 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     let html='<div class="semana-cards">';
     let printRows='';
     let totCx=0,totKg=0,totPt=0,totExtra=0,totFolga=0,totTroca=0,totTempo=0,totVelCxProd=0,totEpCxProd=0;
+    const resumoDias=[]; // resumo por dia para os blocos extras (não altera nenhum cálculo existente)
     const trocaPadrao=Math.max(0,parseInt(document.getElementById('prog-troca-global').value)||0);
     const simVel=parseFloat(document.getElementById('semana-sim-vel')?.value)||0;
     const simEpRaw=document.getElementById('semana-sim-ep')?.value;
-    const simEp=(simEpRaw!==''&&simEpRaw!=null)?parseFloat(simEpRaw):null;
+    const simEp=(simEpRaw!==''&&simEpRaw!=null&&!isNaN(parseFloat(simEpRaw)))?parseFloat(simEpRaw):null;
     const simAtiva=simVel>0||simEp!==null;
     dias.forEach((x)=>{
       const br=fmtBR(x);
@@ -2517,6 +2558,7 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       const epMedia=cx>0&&totalCxEp>0?totalCxEp/cx:0;
       const epStr=epMedia>0?Math.round(epMedia).toLocaleString('pt-BR'):'—';
       totCx+=cx;totKg+=kg;totPt+=pt;totExtra+=extra;totFolga+=folga;totTroca+=trocaDia;totTempo+=tempo;totVelCxProd+=totalCxVel;totEpCxProd+=totalCxEp;
+      resumoDias.push({nome:nomeDia,br,cx,kg,tempo,troca:trocaDia,extra,folga});
       const tempoStr=tempo>0?fmtTempoHM(tempo):'—';
       // caixas por hora de produção (não conta troca nem almoço)
       const cxh=tempo>0?cx/(tempo/60):0;
@@ -2559,6 +2601,55 @@ async function progCarregarSemana(usarPeriodo,usarCache){
     const totEpMedia=totCx>0&&totEpCxProd>0?totEpCxProd/totCx:0;
     const totEpStr=totEpMedia>0?Math.round(totEpMedia).toLocaleString('pt-BR'):'—';
     const totTempoStr=totTempo>0?fmtTempoHM(totTempo):'—';
+    // ── Blocos extras do resumo (somente acréscimo; usam os dados já calculados) ──
+    let indicadoresHtml='',execHtml='',critHtml='',grafHtml='';
+    if(resumoDias.length>0){
+      const nDias=resumoDias.length;
+      const capacidadeMin=TOTAL_MIN*nDias;        // horas úteis: TOTAL_MIN por dia programado
+      const programadoMin=totTempo+totTroca;       // produção + trocas
+      const ocup=capacidadeMin>0?programadoMin/capacidadeMin*100:0;
+      const saldoMin=capacidadeMin-programadoMin;  // >0 folga · <0 hora extra
+      let stCls,dotCls,stTxt;
+      if(ocup>100){stCls='txt-red';dotCls='dot-red';stTxt='Acima da capacidade';}
+      else if(ocup>95){stCls='txt-warn';dotCls='dot-warn';stTxt='No limite';}
+      else{stCls='txt-ok';dotCls='dot-ok';stTxt='Dentro da capacidade';}
+      // 1) Indicadores da Semana
+      indicadoresHtml=`<div class="semana-sec-title">Indicadores da Semana</div><div class="semana-kpis">`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Capacidade disponível</span><span class="kpi-val">${fmtTempoHM(capacidadeMin)}</span><span class="kpi-sub">${nDias} dia(s) × ${fmtTempoHM(TOTAL_MIN)}</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Tempo programado</span><span class="kpi-val">${fmtTempoHM(programadoMin)}</span><span class="kpi-sub">produção + trocas</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Ocupação</span><span class="kpi-val ${stCls}">${fmtNum(ocup,0)}%</span><span class="kpi-sub">da capacidade</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Saldo da semana</span><span class="kpi-val ${saldoMin>=0?'txt-ok':'txt-red'}">${saldoMin>=0?fmtTempoHM(saldoMin):'-'+fmtTempoHM(-saldoMin)}</span><span class="kpi-sub">${saldoMin>=0?'folga':'hora extra'}</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Status</span><span class="semana-status ${stCls}" style="margin-top:3px"><span class="dot ${dotCls}"></span>${stTxt}</span></div>`+
+        `</div>`;
+      // 2) Resumo Executivo
+      const prodMediaKg=nDias>0?totKg/nDias:0;
+      const setupPct=programadoMin>0?totTroca/programadoMin*100:0;
+      execHtml=`<div class="semana-sec-title">Resumo Executivo</div><div class="semana-kpis">`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Produção total</span><span class="kpi-val" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}<span style="font-size:11px;color:var(--txt2)"> kg</span></span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Média diária</span><span class="kpi-val">${prodMediaKg>0?Math.round(prodMediaKg).toLocaleString('pt-BR'):'—'}<span style="font-size:11px;color:var(--txt2)"> kg</span></span><span class="kpi-sub">${nDias} dia(s)</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Total de caixas</span><span class="kpi-val">${totCx.toLocaleString('pt-BR')}</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Média caixas/hora</span><span class="kpi-val">${totCxhStr}</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Tempo produtivo</span><span class="kpi-val">${totTempoStr}</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">Setup / trocas</span><span class="kpi-val">${totTroca>0?fmtTempoHM(totTroca):'—'}</span></div>`+
+        `<div class="semana-kpi"><span class="kpi-lbl">% setup s/ total</span><span class="kpi-val">${fmtNum(setupPct,1)}%</span></div>`+
+        `</div>`;
+      // 3) Dia Crítico da Semana
+      const dMaiorKg=resumoDias.reduce((a,b)=>b.kg>a.kg?b:a);
+      const dMaiorExtra=resumoDias.reduce((a,b)=>b.extra>a.extra?b:a);
+      const dMenorFolga=resumoDias.reduce((a,b)=>b.folga<a.folga?b:a);
+      critHtml=`<div class="semana-sec-title">Dia Crítico da Semana</div><div class="semana-crit">`+
+        `<div class="semana-crit-item crit-accent"><span class="crit-lbl">Maior carga (kg)</span><span class="crit-dia">${dMaiorKg.nome} · ${dMaiorKg.br}</span><span class="crit-val">${Math.round(dMaiorKg.kg).toLocaleString('pt-BR')} kg · ${dMaiorKg.cx.toLocaleString('pt-BR')} cx</span></div>`+
+        `<div class="semana-crit-item crit-red"><span class="crit-lbl">Maior hora extra</span><span class="crit-dia">${dMaiorExtra.extra>0?dMaiorExtra.nome+' · '+dMaiorExtra.br:'—'}</span><span class="crit-val">${dMaiorExtra.extra>0?'+'+fmtTempoHM(dMaiorExtra.extra)+' extra':'sem hora extra'}</span></div>`+
+        `<div class="semana-crit-item crit-warn"><span class="crit-lbl">Menor folga</span><span class="crit-dia">${dMenorFolga.nome} · ${dMenorFolga.br}</span><span class="crit-val">${dMenorFolga.folga>0?fmtTempoHM(dMenorFolga.folga)+' folga':(dMenorFolga.extra>0?'+'+fmtTempoHM(dMenorFolga.extra)+' extra':'no horário')}</span></div>`+
+        `</div>`;
+      // 5) Gráfico simples de carga semanal (kg por dia)
+      const maxKg=Math.max(...resumoDias.map(d=>d.kg),1);
+      const grafRows=resumoDias.map(d=>{
+        const w=d.kg>0?Math.max(2,d.kg/maxKg*100):0;
+        return `<div class="semana-graf-row"><span class="semana-graf-lbl">${d.nome.slice(0,3)} ${d.br.slice(0,5)}</span><span class="semana-graf-bar-wrap"><span class="semana-graf-bar" style="width:${w}%"></span></span><span class="semana-graf-val">${d.kg>0?Math.round(d.kg).toLocaleString('pt-BR')+' kg':'—'}</span></div>`;
+      }).join('');
+      grafHtml=`<div class="semana-graf-wrap" style="margin-top:18px"><div class="semana-sec-title">Carga semanal (kg/dia)</div><div class="semana-graf">${grafRows}</div></div>`;
+    }
     html+=`</div><div class="semana-totais"><span class="semana-totais-label">Total da semana</span><div class="semana-chip"><span class="chip-label">Vel. média</span><span class="chip-val">${totVelStr} <span style="font-size:10px;color:var(--txt2)">m/min</span></span></div><div class="semana-chip"><span class="chip-label">Entre pç médio</span><span class="chip-val">${totEpStr} <span style="font-size:10px;color:var(--txt2)">mm</span></span></div><div class="semana-chip"><span class="chip-label">Caixas</span><span class="chip-val">${totCx.toLocaleString('pt-BR')}</span></div><div class="semana-chip"><span class="chip-label">Cx/h</span><span class="chip-val">${totCxhStr}</span></div><div class="semana-chip"><span class="chip-label">Tempo prod.</span><span class="chip-val">${totTempoStr}</span></div><div class="semana-chip"><span class="chip-label">Troca total</span><span class="chip-val">${totTroca>0?fmtTempoHM(totTroca):'—'}</span></div><div class="semana-chip"><span class="chip-label">KG</span><span class="chip-val" style="color:var(--ok)">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</span></div><div class="semana-chip"><span class="chip-label">Pontos</span><span class="chip-val" style="color:var(--warn)">${totPt>0?fmtNum(totPt,0):'—'}</span></div><div class="semana-chip"><span class="chip-label">H. extra / Folga</span><span class="chip-val ${totExtra>0?'semana-extra-txt':totFolga>0?'semana-folga-txt':''}">${totExtraStr}</span></div></div>`;
     // tabela compacta para impressão (cards ocultos em print)
     printRows+=`<tr style="font-weight:700"><td colspan="3" style="text-align:right">Total da semana:</td><td class="td-num">${totVelStr}</td><td class="td-num">${totEpStr}</td><td class="td-num">${totCx.toLocaleString('pt-BR')}</td><td class="td-num">${totCxhStr}</td><td class="td-num">${totTempoStr}</td><td class="td-num">${totTroca>0?fmtTempoHM(totTroca):'—'}</td><td class="td-num">${totKg>0?Math.round(totKg).toLocaleString('pt-BR'):'—'}</td><td></td><td></td><td class="td-num ${totExtra>0?'semana-extra':''}">${totExtraStr}</td></tr>`;
@@ -2590,7 +2681,8 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       det+='</tbody></table></div></div>';
     });
     if(det)det=`<div class="semana-detalhe" style="margin-top:24px"><div class="card-title" style="margin-bottom:4px">Produtos a embalar</div>${det}</div>`;
-    document.getElementById('prog-semana-body').innerHTML=html+printHtml+det;
+    // Ordem: indicadores (sob o título) · tabela existente · resumo executivo · dia crítico · produtos (já existentes) · gráfico
+    document.getElementById('prog-semana-body').innerHTML=indicadoresHtml+html+printHtml+execHtml+critHtml+det+grafHtml;
     document.getElementById('prog-card-semana').style.display='block';
     status.textContent='';
   }catch(e){status.textContent='';progToast('Erro ao carregar semana: '+e.message,'err');}
@@ -2719,27 +2811,15 @@ function calcSim4(){
   progSyncDataBR();
   progRefreshCenarios('');
 
-  // Operator
   opState.fatorFadiga=FADIGA_PCT/100;
-  renderTabela();
   atualizarConnDot();
-  await carregarConfig();
-  await carregarRegistros();
-  setInterval(()=>{opVerificarVirada();atualizarDestaqueTabela();},60000);
-  const prods=await apiFetch(`?acao=produtos`);
-  if(prods)salvarCacheProdutos(prods);
 
-  // TV
-  tvFetchAndRender();
-  setInterval(tvFetchAndRender,TV_REFRESH);
-
-  // Shared clock
+  // Relógio do cabeçalho
   setInterval(updateAppClock,1000);
   updateAppClock();
-  setTimeout(tvAutoFit,300);
 
-  // Focus leitor on load
-  setTimeout(()=>{const el=document.getElementById('leitor-input');if(el)el.focus();},200);
+  // Operador / TV / Simulações desativados por enquanto — o app usa somente o
+  // Estudo de Tempo. O código desses módulos permanece para reativação futura.
 })();
 </script>
 </body>
