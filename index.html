@@ -606,14 +606,29 @@ td.td-actions { width: 80px; text-align: right; }
   td.semana-extra { background: #f5d76e !important; color: #000 !important; font-weight: 700 !important; }
   .semana-cards,.semana-totais{display:none!important}
   .semana-print-only{display:block!important}
-  /* blocos extras do resumo semanal na impressão A4 */
+  /* blocos extras do resumo semanal na impressão A4 — compactos p/ caber em 1 folha */
   .semana-kpis,.semana-crit,.semana-graf,.semana-graf-wrap{page-break-inside:avoid}
-  .semana-kpi,.semana-crit-item{border:1px solid #ccc !important;background:#f8f8f8 !important}
-  .semana-kpi .kpi-val{font-size:14px !important}
-  .semana-sec-title{color:#000 !important;border-bottom:1px solid #aaa !important;padding-bottom:3px !important;font-size:10px !important;margin-top:14px !important;letter-spacing:1px !important;page-break-after:avoid !important;break-after:avoid !important}
+  .semana-kpis{gap:5px !important;margin-bottom:4px !important}
+  .semana-kpi,.semana-crit-item{border:1px solid #ccc !important;background:#f8f8f8 !important;padding:4px 8px !important;gap:1px !important}
+  .semana-kpi .kpi-lbl,.semana-crit-item .crit-lbl{font-size:7.5px !important}
+  .semana-kpi .kpi-val{font-size:12px !important}
+  .semana-kpi .kpi-sub{font-size:7.5px !important}
+  .semana-status{font-size:10px !important}
+  .semana-status .dot{width:9px !important;height:9px !important}
+  .semana-crit{gap:5px !important;margin-bottom:4px !important}
+  .semana-crit-item .crit-dia{font-size:11px !important}
+  .semana-crit-item .crit-val{font-size:9px !important}
+  .semana-sec-title{color:#000 !important;border-bottom:1px solid #aaa !important;padding-bottom:2px !important;font-size:9px !important;margin:8px 0 4px !important;letter-spacing:1px !important;page-break-after:avoid !important;break-after:avoid !important}
+  .semana-graf{gap:3px !important;margin-top:3px !important}
+  .semana-graf-wrap{margin-top:8px !important}
   .semana-graf-row{page-break-inside:avoid}
-  .semana-graf-bar-wrap{background:#eee !important;border:1px solid #999 !important}
+  .semana-graf-lbl,.semana-graf-val{font-size:9px !important}
+  .semana-graf-bar-wrap{height:11px !important;background:#eee !important;border:1px solid #999 !important}
   .semana-graf-bar{background:#333 !important;border-radius:0 !important}
+  /* tabela do resumo semanal mais compacta (só no print do resumo, não afeta o dia avulso) */
+  body.print-semana .tabela-prog th{font-size:8px !important;padding:3px 6px !important}
+  body.print-semana .tabela-prog td{font-size:9px !important;padding:3px 6px !important}
+  body.print-semana .semana-print-only .card-title{margin-bottom:2px !important}
   .semana-status .dot.dot-ok{background:#16A34A !important}
   .semana-status .dot.dot-warn{background:#EAB308 !important}
   .semana-status .dot.dot-red{background:#DC2626 !important}
