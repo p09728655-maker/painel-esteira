@@ -2719,27 +2719,15 @@ function calcSim4(){
   progSyncDataBR();
   progRefreshCenarios('');
 
-  // Operator
   opState.fatorFadiga=FADIGA_PCT/100;
-  renderTabela();
   atualizarConnDot();
-  await carregarConfig();
-  await carregarRegistros();
-  setInterval(()=>{opVerificarVirada();atualizarDestaqueTabela();},60000);
-  const prods=await apiFetch(`?acao=produtos`);
-  if(prods)salvarCacheProdutos(prods);
 
-  // TV
-  tvFetchAndRender();
-  setInterval(tvFetchAndRender,TV_REFRESH);
-
-  // Shared clock
+  // Relógio do cabeçalho
   setInterval(updateAppClock,1000);
   updateAppClock();
-  setTimeout(tvAutoFit,300);
 
-  // Focus leitor on load
-  setTimeout(()=>{const el=document.getElementById('leitor-input');if(el)el.focus();},200);
+  // Operador / TV / Simulações desativados por enquanto — o app usa somente o
+  // Estudo de Tempo. O código desses módulos permanece para reativação futura.
 })();
 </script>
 </body>
