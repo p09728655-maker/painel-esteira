@@ -120,7 +120,7 @@ select option { background: var(--surface); }
 .tab-panel.active { display: flex; }
 
 /* Operator + Programação + Simulações scroll */
-#tab-operador, #tab-programacao, #tab-simulacoes {
+#tab-operador, #tab-programacao, #tab-simulacoes, #tab-produtos {
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -599,6 +599,11 @@ td.td-actions { width: 80px; text-align: right; }
   /* última tabela diária não pode terminar colada no rodapé fixo */
   .semana-detalhe-dia:last-child { padding-bottom: 12mm !important; }
   body.print-semana #semana-ctrl-area { display: none !important; }
+  /* produtos a embalar agora vivem na aba própria: no print da semana completa
+     eles entram depois do resumo; no "só resumo" ficam ocultos */
+  body.print-semana #tab-produtos { display: block !important; overflow: visible; height: auto; }
+  body.print-semana #tab-produtos .prod-wrap { padding: 0 !important; }
+  body.print-semana-resumo #tab-produtos { display: none !important; }
   /* impressão apenas do resumo da semana: oculta o detalhamento dos produtos */
   body.print-semana-resumo .semana-detalhe { display: none !important; }
   .semana-detalhe-dia { page-break-inside: avoid; }
@@ -649,6 +654,7 @@ td.td-actions { width: 80px; text-align: right; }
   <span class="app-brand">ritmoprod<span>.</span></span><span id="app-version" style="font-size:10px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-left:6px;opacity:0.6"></span>
   <nav class="app-tabs">
     <button class="app-tab active" onclick="switchTab('programacao')">Estudo de Tempo</button>
+    <button class="app-tab" onclick="switchTab('produtos')">Produtos a Embalar</button>
   </nav>
   <div class="app-right">
     <div id="app-conn-dot" title="Status Sheets"></div>
@@ -1115,6 +1121,13 @@ td.td-actions { width: 80px; text-align: right; }
 
   <div id="prog-toast"></div>
 </div><!-- /tab-programacao -->
+
+<!-- ══════════════ TAB: PRODUTOS A EMBALAR ══════════════ -->
+<div id="tab-produtos" class="tab-panel">
+  <div class="prod-wrap" style="padding:24px 20px 60px">
+    <div id="produtos-body"><div class="prod-empty" style="color:var(--txt2);padding:14px 4px;font-size:14px">Carregue o resumo da semana em <strong style="color:var(--txt)">Estudo de Tempo → Semana</strong> para listar aqui os produtos a embalar de cada dia.</div></div>
+  </div>
+</div><!-- /tab-produtos -->
 
 <!-- ══════════════ TAB: SIMULAÇÕES ══════════════ -->
 <div id="tab-simulacoes" class="tab-panel">
@@ -2698,9 +2711,12 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       det+=`<tr style="border-top:2px solid var(--border);font-weight:700"><td colspan="5" style="text-align:right;color:var(--txt2)">Total:</td><td class="td-num">${totDiaCx.toLocaleString('pt-BR')}</td><td class="td-num">${totDiaCxh>0?Math.round(totDiaCxh).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${totDiaTempo>0?fmtTempoHM(totDiaTempo):'—'}</td><td class="td-num">${totDiaTroca>0?fmtTempoHM(totDiaTroca):'—'}</td><td class="td-num">${totDiaKg>0?Math.round(totDiaKg).toLocaleString('pt-BR'):'—'}</td><td class="td-num">${totDiaPontos>0?fmtNum(totDiaPontos,0):'—'}</td><td colspan="2" class="td-num">${totDiaSpanStr}</td></tr>`;
       det+='</tbody></table></div></div>';
     });
-    if(det)det=`<div class="semana-detalhe" style="margin-top:24px"><div class="card-title" style="margin-bottom:4px">Produtos a embalar</div>${det}</div>`;
-    // Ordem: indicadores (sob o título) · tabela existente · resumo executivo · dia crítico · produtos (já existentes) · gráfico
-    document.getElementById('prog-semana-body').innerHTML=indicadoresHtml+html+printHtml+execHtml+critHtml+det+grafHtml;
+    if(det)det=`<div class="semana-detalhe" style="margin-top:8px"><div class="card-title" style="margin-bottom:4px">Produtos a embalar</div>${det}</div>`;
+    // Resumo: faixa de KPIs no topo (Indicadores + Executivo + Dia Crítico), depois a
+    // tabela da semana e o gráfico. Os produtos a embalar vão para a aba própria.
+    document.getElementById('prog-semana-body').innerHTML=indicadoresHtml+execHtml+critHtml+html+printHtml+grafHtml;
+    const _pb=document.getElementById('produtos-body');
+    if(_pb)_pb.innerHTML=det||'<div class="prod-empty" style="color:var(--txt2);padding:14px 4px;font-size:14px">Nenhum produto a embalar na semana selecionada.</div>';
     document.getElementById('prog-card-semana').style.display='block';
     status.textContent='';
   }catch(e){status.textContent='';progToast('Erro ao carregar semana: '+e.message,'err');}
