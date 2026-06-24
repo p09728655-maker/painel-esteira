@@ -57,6 +57,8 @@ select option { background: var(--surface); }
   text-decoration: none;
 }
 .app-brand span { color: var(--accent); }
+.app-subtitle { font-size: 13px; color: var(--txt2); white-space: nowrap; flex-shrink: 0; letter-spacing: .3px; }
+@media (max-width: 720px) { .app-subtitle { display: none; } }
 .app-tabs {
   display: flex;
   gap: 4px;
@@ -653,7 +655,7 @@ td.td-actions { width: 80px; text-align: right; }
 <!-- APP HEADER                                                      -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div id="app-header">
-  <span class="app-brand">ritmoprod<span>.</span></span><span id="app-version" style="font-size:10px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-left:6px;opacity:0.6"></span>
+  <span class="app-brand">ritmoprod<span>.</span></span><span id="app-version" style="font-size:10px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-left:6px;opacity:0.6"></span><span class="app-subtitle">· Setor Embalagem</span>
   <nav class="app-tabs">
     <button class="app-tab active" onclick="switchTab('programacao')">Estudo de Tempo</button>
     <button class="app-tab" onclick="switchTab('produtos')">Produtos a Embalar</button>
@@ -926,8 +928,6 @@ td.td-actions { width: 80px; text-align: right; }
   </div>
 
   <div id="prog-wrapper">
-    <h2>Estudo de Tempo — Setor Embalagem</h2>
-
     <div class="card" id="prog-card-data">
       <div class="card-title">Data</div>
       <div class="date-row">
