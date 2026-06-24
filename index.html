@@ -628,8 +628,10 @@ td.td-actions { width: 80px; text-align: right; }
   .semana-graf-wrap{margin-top:8px !important}
   .semana-graf-row{page-break-inside:avoid}
   .semana-graf-lbl,.semana-graf-val{font-size:9px !important}
-  .semana-graf-bar-wrap{height:11px !important;background:#eee !important;border:1px solid #999 !important}
-  .semana-graf-bar{background:#333 !important;border-radius:0 !important}
+  /* barra desenhada com BORDA (imprime sempre, mesmo sem "gráficos de fundo");
+     evita que as barras saiam todas do mesmo tamanho no PDF */
+  .semana-graf-bar-wrap{height:auto !important;background:transparent !important;border:none !important;border-bottom:1px solid #bbb !important;overflow:visible !important}
+  .semana-graf-bar{height:0 !important;min-width:0 !important;background:transparent !important;border-radius:0 !important;border-top:12px solid #333 !important}
   /* tabela do resumo semanal mais compacta (só no print do resumo, não afeta o dia avulso) */
   body.print-semana .tabela-prog th{font-size:8px !important;padding:3px 6px !important}
   body.print-semana .tabela-prog td{font-size:9px !important;padding:3px 6px !important}
