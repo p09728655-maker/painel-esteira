@@ -409,10 +409,10 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 1; }
 .prog-cell-input.mod { border-color:var(--accent); color:var(--accent); font-weight:700; }
 td.semana-extra { color: var(--red) !important; font-weight: 700; }
 /* ── SEMANA CARDS ──────────────────────────────────────────────── */
-.semana-cards{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.semana-cards{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .semana-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s}
 .semana-card:hover{border-color:var(--txt2)}
-.semana-card-header{display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;user-select:none;transition:background .15s}
+.semana-card-header{display:flex;align-items:center;gap:14px;padding:8px 16px;cursor:pointer;user-select:none;transition:background .15s}
 .semana-card-header:hover{background:rgba(255,255,255,0.03)}
 .semana-card-dia{flex-shrink:0;width:88px}
 .semana-dia-nome{font-weight:700;font-size:15px;display:block;line-height:1.2}
@@ -430,23 +430,23 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-card.open .semana-chevron{transform:rotate(90deg)}
 .semana-card-body{border-top:1px solid var(--border);padding:12px 16px 16px}
 .semana-card-vazia{color:var(--txt2);padding:10px 16px;font-size:13px;font-style:italic}
-.semana-totais{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px 20px}
+.semana-totais{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 16px;display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px 20px}
 .semana-totais-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center;margin-right:6px;flex-shrink:0}
 .semana-extra-txt{color:var(--red)!important;font-weight:700}
 .semana-folga-txt{color:var(--ok)!important}
 /* ── RESUMO SEMANAL: blocos extras (indicadores / executivo / dia crítico / gráfico) ── */
-.semana-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:18px 0 8px}
-.semana-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:8px}
-.semana-kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;flex-direction:column;gap:3px}
+.semana-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:11px 0 5px}
+.semana-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:6px}
+.semana-kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 13px;display:flex;flex-direction:column;gap:2px}
 .semana-kpi .kpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
-.semana-kpi .kpi-val{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:600;white-space:nowrap}
+.semana-kpi .kpi-val{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;white-space:nowrap}
 .semana-kpi .kpi-sub{font-size:10px;color:var(--txt2)}
 .semana-status{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px}
 .semana-status .dot{width:11px;height:11px;border-radius:50%;display:inline-block;flex-shrink:0}
 .dot-ok{background:var(--ok)}.dot-warn{background:var(--warn)}.dot-red{background:var(--red)}
 .txt-ok{color:var(--ok)}.txt-warn{color:var(--warn)}.txt-red{color:var(--red)}
-.semana-crit{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:8px}
-.semana-crit-item{border:1px solid var(--border);border-left:4px solid var(--border);border-radius:8px;padding:10px 14px;background:var(--surface);display:flex;flex-direction:column;gap:2px}
+.semana-crit{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:6px}
+.semana-crit-item{border:1px solid var(--border);border-left:4px solid var(--border);border-radius:8px;padding:8px 13px;background:var(--surface);display:flex;flex-direction:column;gap:2px}
 .semana-crit-item.crit-accent{border-left-color:var(--accent)}
 .semana-crit-item.crit-red{border-left-color:var(--red)}
 .semana-crit-item.crit-warn{border-left-color:var(--warn)}
