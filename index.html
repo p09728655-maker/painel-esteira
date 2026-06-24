@@ -2651,7 +2651,10 @@ async function progCarregarSemana(usarPeriodo,usarCache){
       // 3) Dia Crítico da Semana
       const dMaiorKg=resumoDias.reduce((a,b)=>b.kg>a.kg?b:a);
       const dMaiorExtra=resumoDias.reduce((a,b)=>b.extra>a.extra?b:a);
-      const dMenorFolga=resumoDias.reduce((a,b)=>b.folga<a.folga?b:a);
+      // menor folga = dia mais apertado que AINDA cabe no turno (folga>0); evita
+      // duplicar o card de hora extra quando o menor valor é um dia em extra
+      const _comFolga=resumoDias.filter(d=>d.folga>0);
+      const dMenorFolga=(_comFolga.length?_comFolga:resumoDias).reduce((a,b)=>b.folga<a.folga?b:a);
       critHtml=`<div class="semana-sec-title">Dia Crítico da Semana</div><div class="semana-crit">`+
         `<div class="semana-crit-item crit-accent"><span class="crit-lbl">Maior carga (kg)</span><span class="crit-dia">${dMaiorKg.nome} · ${dMaiorKg.br}</span><span class="crit-val">${Math.round(dMaiorKg.kg).toLocaleString('pt-BR')} kg · ${dMaiorKg.cx.toLocaleString('pt-BR')} cx</span></div>`+
         `<div class="semana-crit-item crit-red"><span class="crit-lbl">Maior hora extra</span><span class="crit-dia">${dMaiorExtra.extra>0?dMaiorExtra.nome+' · '+dMaiorExtra.br:'—'}</span><span class="crit-val">${dMaiorExtra.extra>0?'+'+fmtTempoHM(dMaiorExtra.extra)+' extra':'sem hora extra'}</span></div>`+
