@@ -34,6 +34,7 @@
   --txt2:    #71717A;
   --radius:  8px;
   --hdr:     52px;
+  --semana-cols: 88px repeat(9, minmax(0, 1fr)) 116px; /* dia + 9 métricas + badge */
 }
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; background: var(--bg); color: var(--txt); font-family: 'Inter', system-ui, sans-serif; font-size: 15px; }
@@ -426,16 +427,16 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-cards{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .semana-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s}
 .semana-card:hover{border-color:var(--txt2)}
-.semana-card-header{display:flex;align-items:center;gap:14px;padding:6px 16px;cursor:pointer;user-select:none;transition:background .15s}
+.semana-card-header{display:grid;grid-template-columns:var(--semana-cols);align-items:center;gap:0 14px;padding:6px 16px;cursor:pointer;user-select:none;transition:background .15s}
 .semana-card-header:hover{background:rgba(255,255,255,0.03)}
-.semana-card-dia{flex-shrink:0;width:88px}
+.semana-card-dia{min-width:0}
 .semana-dia-nome{font-weight:600;font-size:15px;display:block;line-height:1.2}
 .semana-dia-data{font-size:11px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-top:2px;display:block}
-.semana-chips{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px 14px;flex:1;align-items:center}
+.semana-chips{display:contents}
 .semana-chip{display:flex;flex-direction:column;min-width:0}
 .chip-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
 .chip-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;white-space:nowrap;margin-top:1px}
-.semana-card-right{flex-shrink:0;display:flex;align-items:center;gap:10px}
+.semana-card-right{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
 .semana-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:.02em}
 .semana-badge-extra{background:rgba(220,38,38,.15);color:var(--red)}
 .semana-badge-folga{background:rgba(22,163,74,.15);color:var(--ok)}
@@ -444,8 +445,8 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-card.open .semana-chevron{transform:rotate(90deg)}
 .semana-card-body{border-top:1px solid var(--border);padding:12px 16px 16px}
 .semana-card-vazia{color:var(--txt2);padding:10px 16px;font-size:13px;font-style:italic}
-.semana-totais{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 16px;display:grid;grid-template-columns:96px repeat(9,minmax(0,1fr));align-items:center;gap:2px 14px}
-.semana-totais-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center;margin-right:6px}
+.semana-totais{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 16px;display:grid;grid-template-columns:var(--semana-cols);align-items:center;gap:0 14px}
+.semana-totais-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center}
 .semana-extra-txt{color:var(--red)!important;font-weight:700}
 .semana-folga-txt{color:var(--ok)!important}
 /* ── RESUMO SEMANAL: blocos extras (indicadores / executivo / dia crítico / gráfico) ── */
