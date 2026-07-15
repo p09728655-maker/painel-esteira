@@ -1,5 +1,11 @@
 {
   "routes": [
+    { "src": "/sw.js", "dest": "/sw.js",
+      "headers": { "Cache-Control": "no-cache, no-store, must-revalidate", "Service-Worker-Allowed": "/" } },
+    { "src": "/manifest.webmanifest", "dest": "/manifest.webmanifest",
+      "headers": { "Content-Type": "application/manifest+json; charset=utf-8", "Cache-Control": "public, max-age=3600" } },
+    { "src": "/icons/(.*)", "dest": "/icons/$1",
+      "headers": { "Cache-Control": "public, max-age=604800" } },
     { "src": "/app",          "dest": "/app.html"              },
     { "src": "/operador",    "dest": "/esteira_operador.html" },
     { "src": "/tv",          "dest": "/esteira_tv.html"       },
