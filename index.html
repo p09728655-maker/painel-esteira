@@ -429,11 +429,11 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-card-header{display:flex;align-items:center;gap:14px;padding:6px 16px;cursor:pointer;user-select:none;transition:background .15s}
 .semana-card-header:hover{background:rgba(255,255,255,0.03)}
 .semana-card-dia{flex-shrink:0;width:88px}
-.semana-dia-nome{font-weight:700;font-size:15px;display:block;line-height:1.2}
+.semana-dia-nome{font-weight:600;font-size:15px;display:block;line-height:1.2}
 .semana-dia-data{font-size:11px;color:var(--txt2);font-family:'JetBrains Mono',monospace;margin-top:2px;display:block}
-.semana-chips{display:flex;flex-wrap:wrap;gap:6px 20px;flex:1;align-items:flex-start}
-.semana-chip{display:flex;flex-direction:column;min-width:48px}
-.chip-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
+.semana-chips{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px 14px;flex:1;align-items:center}
+.semana-chip{display:flex;flex-direction:column;min-width:0}
+.chip-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
 .chip-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;white-space:nowrap;margin-top:1px}
 .semana-card-right{flex-shrink:0;display:flex;align-items:center;gap:10px}
 .semana-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;letter-spacing:.02em}
@@ -444,15 +444,15 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-card.open .semana-chevron{transform:rotate(90deg)}
 .semana-card-body{border-top:1px solid var(--border);padding:12px 16px 16px}
 .semana-card-vazia{color:var(--txt2);padding:10px 16px;font-size:13px;font-style:italic}
-.semana-totais{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 16px;display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px 20px}
-.semana-totais-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center;margin-right:6px;flex-shrink:0}
+.semana-totais{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 16px;display:grid;grid-template-columns:96px repeat(9,minmax(0,1fr));align-items:center;gap:2px 14px}
+.semana-totais-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);align-self:center;margin-right:6px}
 .semana-extra-txt{color:var(--red)!important;font-weight:700}
 .semana-folga-txt{color:var(--ok)!important}
 /* ── RESUMO SEMANAL: blocos extras (indicadores / executivo / dia crítico / gráfico) ── */
 .semana-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:6px 0 5px}
 .semana-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:6px}
 .semana-kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:5px 12px;display:flex;flex-direction:column;gap:0;justify-content:center}
-.semana-kpi .kpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
+.semana-kpi .kpi-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--txt2);line-height:1.2}
 .semana-kpi .kpi-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;white-space:nowrap;line-height:1.15}
 .semana-kpi .kpi-sub{font-size:9px;color:var(--txt2);line-height:1.2}
 .semana-status{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:13px}
@@ -464,7 +464,7 @@ td.semana-extra { color: var(--red) !important; font-weight: 700; }
 .semana-crit-item.crit-accent{border-left-color:var(--accent)}
 .semana-crit-item.crit-red{border-left-color:var(--red)}
 .semana-crit-item.crit-warn{border-left-color:var(--warn)}
-.semana-crit-item .crit-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt2)}
+.semana-crit-item .crit-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--txt2)}
 .semana-crit-item .crit-dia{font-size:14px;font-weight:700}
 .semana-crit-item .crit-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--txt2)}
 .semana-graf{display:flex;flex-direction:column;gap:4px;margin-top:4px}
@@ -994,19 +994,27 @@ td.td-actions { width: 80px; text-align: right; }
           <span id="semana-sim-badge" style="display:none;color:var(--warn);font-size:11px;font-weight:600">● SIM</span>
           <button class="btn btn-outline btn-sm" id="semana-sim-limpar" onclick="progSemanaSimLimpar()" style="display:none;border-color:var(--txt2);color:var(--txt2);padding:3px 8px;font-size:11px">✕ Sim.</button>
           <span style="width:1px;height:16px;background:var(--border);display:inline-block"></span>
-          <span class="prog-semana-periodo" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2)">
+          <span class="prog-semana-periodo" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2);position:relative">
             De:
             <input type="text" id="prog-semana-ini" placeholder="DD/MM/AA" maxlength="8" inputmode="numeric"
               title="Data inicial do período (DD/MM/AA)"
               style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:6px;font-size:13px;font-family:'JetBrains Mono',monospace;width:90px"
               oninput="progMascaraData(this)">
+            <button type="button" class="btn btn-outline btn-sm" style="padding:5px 7px" title="Abrir calendário" onclick="progAbrirCalPeriodo('prog-semana-ini','prog-semana-ini-date')">📅</button>
+            <input type="date" id="prog-semana-ini-date" tabindex="-1"
+              style="position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0"
+              onchange="progSyncPeriodo('prog-semana-ini','prog-semana-ini-date')">
           </span>
-          <span class="prog-semana-periodo" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2)">
+          <span class="prog-semana-periodo" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--txt2);position:relative">
             Até:
             <input type="text" id="prog-semana-fim" placeholder="DD/MM/AA" maxlength="8" inputmode="numeric"
               title="Data final do período (DD/MM/AA)"
               style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--txt);padding:6px;font-size:13px;font-family:'JetBrains Mono',monospace;width:90px"
               oninput="progMascaraData(this)">
+            <button type="button" class="btn btn-outline btn-sm" style="padding:5px 7px" title="Abrir calendário" onclick="progAbrirCalPeriodo('prog-semana-fim','prog-semana-fim-date')">📅</button>
+            <input type="date" id="prog-semana-fim-date" tabindex="-1"
+              style="position:absolute;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0"
+              onchange="progSyncPeriodo('prog-semana-fim','prog-semana-fim-date')">
           </span>
           <button class="btn btn-outline btn-sm" onclick="progCarregarSemana(true)" title="Atualizar o resumo com o período escolhido">↻ Atualizar</button>
           <button class="btn btn-outline btn-sm" onclick="progImprimirSemana()" style="border-color:var(--txt2);color:var(--txt2)">🖨 Imprimir</button>
@@ -2057,6 +2065,24 @@ function progAbrirCalendario(){
   el.style.pointerEvents='auto';
   try{el.showPicker?el.showPicker():el.click();}catch(e){el.click();}
   el.style.pointerEvents='none';
+}
+// Calendário para os campos De/Até (período do resumo da semana)
+function progAbrirCalPeriodo(textId,hiddenId){
+  const txt=document.getElementById(textId);
+  const hid=document.getElementById(hiddenId);
+  const iso=txt&&txt.value?progParseDDMMYY(txt.value):null; // posiciona o calendário na data atual do campo
+  if(iso)hid.value=iso;
+  hid.style.pointerEvents='auto';
+  try{hid.showPicker?hid.showPicker():hid.click();}catch(e){hid.click();}
+  hid.style.pointerEvents='none';
+}
+function progSyncPeriodo(textId,hiddenId){
+  const txt=document.getElementById(textId);
+  const hid=document.getElementById(hiddenId);
+  if(!hid.value)return;
+  const [y,m,d]=hid.value.split('-');
+  txt.value=`${d}/${m}/${y.slice(2)}`; // grava no formato DD/MM/AA do campo
+  txt.style.borderColor='';
 }
 
 const FADIGA_PCT = 15; // alterar aqui para mudar o percentual de fadiga
