@@ -4,7 +4,7 @@
  * - Cross-origin (Google Apps Script, CDNs, fontes): nao intercepta -> rede normal.
  * Suba o CACHE_VERSION a cada release para invalidar o cache antigo.
  */
-const CACHE_VERSION = 'ritmoprod-v1';
+const CACHE_VERSION = 'ritmoprod-v2';
 const CACHE = CACHE_VERSION;
 
 // Paginas/rotas do app (ver vercel.json)
